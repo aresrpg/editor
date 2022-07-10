@@ -1,8 +1,8 @@
 {
-  "name": "app-starter",
+  "name": "ares-editor",
   "version": "0.0.0",
   "type": "module",
-  "description": "",
+  "description": "JSON editor for AresRPG",
   "scripts": {
     "start": "vite --host",
     "build": "vite build",
