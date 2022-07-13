@@ -48,7 +48,7 @@ const handle_file_content = ({ key, file_content } = {}) => {
     } catch (error) {
       console.error(error);
     }
-  alert(`Wrong file structure, this is not ${key}.json`);
+    alert(`Wrong file structure, this is not ${key}.json`);
   }
 };
 
@@ -67,7 +67,7 @@ onMounted(() => {
 });
 </script>
 
-<style lang="stylus">
+<style lang="stylus" scoped>
 .start__container
   width 100%
   height 70%
