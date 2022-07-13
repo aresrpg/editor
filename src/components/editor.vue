@@ -15,10 +15,15 @@
       )
     .found
       span entries
-      span {{ elements.length }}
+      tween(:number="elements.length")
   .content
     .list__container
-      .element(v-for="element in elements" :key="element.id")
+      .element(
+          :class="{ selected: selected_element === element.id }"
+          @click="() => select_element(element.id)"
+          v-for="element in elements"
+          :key="element.id"
+        )
         .key {{ element.id }}
     slot
 </template>
@@ -27,13 +32,21 @@
 import { ref, inject, computed } from 'vue';
 
 import Files from '../Files';
+import stored_ref from '../stored_ref';
+
+import tween from './tween.vue';
 
 const { key_name, right } = defineProps(['key_name', 'right']);
 const raw_elements = inject(key_name, {});
 const search = inject(`${key_name}:search`, '');
 
-const fancy_name = ref(false);
-const select = ref();
+const fancy_name = stored_ref(`${key_name}:fancy_name`, false);
+const select = stored_ref(`${key_name}:select`);
+const selected_element = stored_ref(`${key_name}:selected`);
+const select_element = id => {
+  if (selected_element.value === id) selected_element.value = null;
+  else selected_element.value = id;
+};
 
 const contains = (string = '') =>
   string.toLowerCase().includes(search.value.toLowerCase());
@@ -239,4 +252,10 @@ const elements = computed(() => {
         background #f0f0f3
         cursor pointer
         box-shadow 6px 6px 12px #dadadd, -6px -6px 12px #ffffff
+        transition all 200ms ease-in-out
+        &.selected
+          position relative
+          background var(--gradient-primary)
+          color white
+          transform translateX(-10px)
 </style>

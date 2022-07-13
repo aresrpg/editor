@@ -11,7 +11,7 @@ nav
 </template>
 
 <script setup>
-import { ref, inject, provide, watchEffect } from 'vue';
+import { inject } from 'vue';
 
 import Files from '../Files';
 
