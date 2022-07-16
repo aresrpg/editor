@@ -24,7 +24,6 @@ const tween = (start, end) => {
     .to(boxed_end, 400)
     .onUpdate(() => {
       tweened.value = current_tween._object.number.toFixed(0);
-      console.log(current_tween._object);
     })
     .onComplete(() => {
       cancelAnimationFrame(handler);

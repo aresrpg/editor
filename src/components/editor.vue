@@ -22,17 +22,17 @@
           :class="{ selected: selected_element === element.id }"
           @click="() => select_element(element.id)"
           v-for="element in elements"
-          :key="element.id"
+          :key="element._id"
         )
         .key {{ element.id }}
-    slot
+    slot.slot(v-if="selected_element" :selected="raw_elements[selected_element]")
 </template>
 
 <script setup>
-import { ref, inject, computed } from 'vue';
+import { inject, computed } from 'vue';
 
 import Files from '../Files';
-import stored_ref from '../stored_ref';
+import { stored_ref } from '../stored';
 
 import tween from './tween.vue';
 
@@ -53,7 +53,7 @@ const contains = (string = '') =>
 
 const extract = get_property =>
   Array.from(
-    Object.values(raw_elements.value)
+    Object.values(raw_elements)
       .reduce((set, object) => set.add(get_property(object)), new Set())
       .values()
   ).sort();
@@ -111,9 +111,9 @@ const Options = {
   [Files.ITEMS]: {
     existing_types: computed(() => extract(Extractors[Files.ITEMS].type)),
     existing_items: computed(() => extract(Extractors[Files.ITEMS].item)),
-    insert_key: ([id, value], index) => {
+    insert_key: ([id, value]) => {
       const final_id = fancy_name.value ? value.name : id;
-      return { id: `${index}. ${final_id}`, ...value };
+      return { id: final_id, _id: id, ...value };
     },
     filters: computed(() => [
       {
@@ -148,7 +148,7 @@ const Options = {
     existing_types: computed(() => extract(({ category }) => category)),
     insert_key: ([id, value], index) => {
       const final_id = fancy_name.value ? value.display_name : id;
-      return { id: `${index}. ${final_id}`, ...value };
+      return { id: final_id, ...value };
     },
     filters: computed(() => [
       {
@@ -190,7 +190,7 @@ const Options = {
 
 const elements = computed(() => {
   const { insert_key } = Options[key_name];
-  return Object.entries(raw_elements.value)
+  return Object.entries(raw_elements)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(insert_key)
     .filter(search_filter)
@@ -199,6 +199,8 @@ const elements = computed(() => {
 </script>
 
 <style lang="stylus" scoped>
+.slot
+  background crimson
 .editor__container
   display flex
   flex-flow column nowrap
@@ -238,10 +240,9 @@ const elements = computed(() => {
       height calc(100vh - 50px - 1em - 60px)
       padding 1em
       padding-top 0
-      width max-content
+      min-width max-content
       overflow hidden
       overflow-y auto
-
       .add
         position relative
       .element

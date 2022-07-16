@@ -1,70 +1,51 @@
 <template lang="pug">
 .start__container
   span Welcome in AresRpg's data editor
-  span Please locate the #[b(:class="{ valid: Handler[Files.ITEMS].valid.value }" @click="() => on_pick(Files.ITEMS)") items.json] and #[b(:class="{ valid: Handler[Files.ENTITIES].valid.value }" @click="() => on_pick(Files.ENTITIES)") entities.json] files to start
+  span Please locate the #[b(:class="{ valid: present(Data[Files.ITEMS].object) }" @click="() => on_pick(Files.ITEMS)") items.json] and #[b(:class="{ valid: present(Data[Files.ENTITIES].object) }" @click="() => on_pick(Files.ENTITIES)") entities.json] files to start
 </template>
 
 <script setup>
-import { inject, onMounted, ref, watchEffect } from 'vue';
+import { inject, onMounted, ref } from 'vue';
 
 import Files from '../Files.js';
 
-const Handler = {
+const Data = {
   [Files.ITEMS]: {
     fields: ['name', 'item', 'type'],
-    valid: ref(false),
-    data: inject(Files.ITEMS),
+    object: inject(Files.ITEMS),
   },
   [Files.ENTITIES]: {
     fields: ['minecraft_entity', 'category', 'display_name'],
-    valid: ref(false),
-    data: inject(Files.ENTITIES),
+    object: inject(Files.ENTITIES),
   },
 };
 
-const import_storage = key => {
-  try {
-    return {
-      key,
-      file_content: localStorage.getItem(key),
-    };
-  } catch {}
-};
+const present = obj => !!Object.keys(obj).length;
 
-const handle_file_content = ({ key, file_content } = {}) => {
-  if (file_content) {
-    const { fields, valid, data } = Handler[key];
-    try {
-      const content = JSON.parse(file_content);
-      const content_valid = Object.values(content).every(object =>
-        fields.every(field => field in object)
-      );
-      if (content_valid) {
-        valid.value = true;
-        data.value = content;
-        localStorage.setItem(key, file_content);
-        return;
-      }
-    } catch (error) {
-      console.error(error);
-    }
-    alert(`Wrong file structure, this is not ${key}.json`);
-  }
+const assign_content = ({ key, file_content = {} }) => {
+  const { fields, object } = Data[key];
+  if (
+    Object.values(file_content).every(object =>
+      fields.every(field => field in object)
+    )
+  ) {
+    Object.assign(object, file_content);
+  } else alert(`Wrong file structure, this is not ${key}.json`);
 };
 
 const on_pick = async key => {
-  handle_file_content({
-    key,
-    file_content: await window
-      .showOpenFilePicker()
-      .then(([file_handle]) => file_handle.getFile())
-      .then(file => file.text()),
-  });
-};
+  const uploaded = await window
+    .showOpenFilePicker()
+    .then(([file_handle]) => file_handle.getFile())
+    .then(file => file.text());
 
-onMounted(() => {
-  Object.values(Files).map(import_storage).forEach(handle_file_content);
-});
+  try {
+    const file_content = JSON.parse(uploaded);
+    assign_content({ key, file_content });
+  } catch (error) {
+    console.error(error);
+  }
+};
 </script>
 
 <style lang="stylus" scoped>

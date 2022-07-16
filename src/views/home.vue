@@ -8,16 +8,17 @@
 </template>
 
 <script setup>
-import { provide, ref, watchEffect } from 'vue';
+import { provide, reactive, ref, watchEffect } from 'vue';
 
 import start from '../components/start.vue';
 import Files from '../Files.js';
 import itemEditor from '../components/item-editor.vue';
 import entityEditor from '../components/entity-editor.vue';
 import editorNav from '../components/nav.vue';
+import { stored_reactive } from '../stored.js';
 
-const items = ref();
-const entities = ref();
+const items = stored_reactive(Files.ITEMS);
+const entities = stored_reactive(Files.ENTITIES);
 const can_edit = ref(false);
 
 const item_search = ref('');
@@ -29,8 +30,10 @@ provide(Files.ENTITIES, entities);
 provide(`${Files.ITEMS}:search`, item_search);
 provide(`${Files.ENTITIES}:search`, entity_search);
 
+const present = obj => !!Object.keys(obj).length;
+
 watchEffect(() => {
-  if (items.value && entities.value) can_edit.value = true;
+  if (present(items) && present(entities)) can_edit.value = true;
   else can_edit.value = false;
 });
 </script>
