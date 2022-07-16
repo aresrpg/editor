@@ -2,8 +2,11 @@
 .editor__container(:class="{ right }")
   .options
     .keys
-      span Show names
+      span names
       q-switch(v-model="fancy_name")
+    .keys
+      span json
+      q-switch(v-model="show_json")
     .type
       q-cascader(
         multiple
@@ -19,13 +22,13 @@
   .content
     .list__container
       .element(
-          :class="{ selected: selected_element === element.id }"
-          @click="() => select_element(element.id)"
+          :class="{ selected: selected_element === element._id }"
+          @click="() => select_element(element._id)"
           v-for="element in elements"
           :key="element._id"
         )
         .key {{ element.id }}
-    slot.slot(v-if="selected_element" :selected="raw_elements[selected_element]")
+    slot.slot(v-if="selected_element" :selected="selected_element")
 </template>
 
 <script setup>
@@ -39,6 +42,7 @@ import tween from './tween.vue';
 const { key_name, right } = defineProps(['key_name', 'right']);
 const raw_elements = inject(key_name, {});
 const search = inject(`${key_name}:search`, '');
+const show_json = inject(`${key_name}:json`);
 
 const fancy_name = stored_ref(`${key_name}:fancy_name`, false);
 const select = stored_ref(`${key_name}:select`);
@@ -65,6 +69,7 @@ const Extractors = {
     item: ({ item }) => item,
     name: ({ name }) => name,
     level: ({ level }) => level,
+    enchanted: ({ enchanted }) => enchanted,
   },
   [Files.ENTITIES]: {
     type: ({ category }) => category,
@@ -96,11 +101,16 @@ const properties_filter = object => {
     .every(([type, types]) =>
       types.find(rule => {
         const property = Extractors[key_name][type](object);
-        if (typeof property === 'number') {
-          const [min, max] = rule.split(':');
-          return property > +min && property <= +max;
+        switch (typeof property) {
+          case 'number': {
+            const [min, max] = rule.split(':');
+            return property > +min && property <= +max;
+          }
+          case 'boolean':
+            return !!property;
+          default:
+            return property === rule;
         }
-        return property === rule;
       })
     );
 };
@@ -141,6 +151,10 @@ const Options = {
           label: item,
           value: make_key('item', item),
         })),
+      },
+      {
+        label: 'Enchanted',
+        value: make_key('enchanted', 'enchanted'),
       },
     ]),
   },
@@ -246,6 +260,7 @@ const elements = computed(() => {
       .add
         position relative
       .element
+        user-select none
         width 100%
         padding .5em 1em
         margin-top .5em

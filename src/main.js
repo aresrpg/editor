@@ -4,9 +4,12 @@ import Toast, { useToast } from 'vue-toastification';
 import 'vue-toastification/dist/index.css';
 import Qui from '@qvant/qui-max';
 import '@qvant/qui-max/styles';
+import v_outside from 'click-outside-vue3';
+import VueHighlightJS from 'vue3-highlightjs';
 
 import app from './app.vue';
 import router from './router.js';
+import 'highlight.js/styles/monokai.css';
 
 console.log(
   `%c You're curious, i like you 😊`,
@@ -16,7 +19,13 @@ console.log(
 const vue_app = createApp(app);
 const toast = useToast();
 
-vue_app.use(router).use(Toast).use(Qui).mount('#app');
+vue_app
+  .use(router)
+  .use(Toast)
+  .use(VueHighlightJS)
+  .use(v_outside)
+  .use(Qui)
+  .mount('#app');
 
 const updateSW = registerSW({
   onOfflineReady() {
