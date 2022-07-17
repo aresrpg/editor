@@ -41,6 +41,7 @@ import tween from './tween.vue';
 
 const { key_name, right } = defineProps(['key_name', 'right']);
 const raw_elements = inject(key_name, {});
+
 const search = inject(`${key_name}:search`, '');
 const show_json = inject(`${key_name}:json`);
 
@@ -62,7 +63,6 @@ const extract = get_property =>
       .values()
   ).sort();
 
-const SPLIT_KEY = '%:$^%';
 const Extractors = {
   [Files.ITEMS]: {
     type: ({ type }) => type,
@@ -70,6 +70,7 @@ const Extractors = {
     name: ({ name }) => name,
     level: ({ level }) => level,
     enchanted: ({ enchanted }) => enchanted,
+    description: ({ description }) => description,
   },
   [Files.ENTITIES]: {
     type: ({ category }) => category,
@@ -89,8 +90,8 @@ const properties_filter = object => {
   if (!select.value) return true;
   return Array.from(
     Object.values(select.value)
-      .map(value => value.split(SPLIT_KEY))
-      .reduce((types, [type, rule]) => {
+      .map(value => JSON.parse(value))
+      .reduce((types, { type, rule }) => {
         if (!types.has(type)) types.set(type, new Set());
         types.get(type).add(rule);
         return types;
@@ -101,13 +102,16 @@ const properties_filter = object => {
     .every(([type, types]) =>
       types.find(rule => {
         const property = Extractors[key_name][type](object);
-        switch (typeof property) {
-          case 'number': {
+        switch (type) {
+          case 'level': {
             const [min, max] = rule.split(':');
             return property > +min && property <= +max;
           }
-          case 'boolean':
+          case 'enchanted':
             return !!property;
+          case 'description':
+            if (rule === 'no_desc') return !property;
+            return property && property.trim();
           default:
             return property === rule;
         }
@@ -115,7 +119,7 @@ const properties_filter = object => {
     );
 };
 
-const make_key = (type, rule) => `${type}${SPLIT_KEY}${rule}`;
+const make_key = (type, rule = type) => JSON.stringify({ type, rule });
 
 const Options = {
   [Files.ITEMS]: {
@@ -154,7 +158,18 @@ const Options = {
       },
       {
         label: 'Enchanted',
-        value: make_key('enchanted', 'enchanted'),
+        value: make_key('enchanted'),
+      },
+      {
+        label: 'Description',
+        value: 'desc',
+        children: [
+          { label: 'With description', value: make_key('description') },
+          {
+            label: 'Without description',
+            value: make_key('description', 'no_desc'),
+          },
+        ],
       },
     ]),
   },

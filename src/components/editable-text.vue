@@ -1,16 +1,13 @@
 <template lang="pug">
-.field
+.area
   slot(v-if="!edit" :click="allow_edit")
     div(@click="allow_edit") {{ props.modelValue }}
-  component(
+  textarea(
     v-else
-    :is="props.numeric ? 'q-input-number' : 'q-input'"
-    :class="props"
     @blur="({ target: { value }}) => validate(value)"
     @keyup.enter="$event.target.blur()"
-    :model-value="props.numeric ? +props.modelValue : props.modelValue"
+    :value="props.modelValue"
     autofocus
-    :min="props.allowNegative ? -99999999999 : 1"
     v-click-outside="() => validate()"
   )
 </template>
@@ -22,7 +19,7 @@ const allow_edit = () => {
   edit.value = true;
 };
 const edit = ref(false);
-const props = defineProps(['modelValue', 'numeric', 'allowNegative']);
+const props = defineProps(['modelValue']);
 const emits = defineEmits(['update:modelValue']);
 const validate = value => {
   const trimmed = value?.trim();
@@ -32,9 +29,12 @@ const validate = value => {
 </script>
 
 <style lang="stylus">
-.field
-  cursor pointer
-  max-width 200px
-  input.numeric
-    width 60px
+textarea
+ border none
+ padding 1em
+ box-shadow 14px 14px 28px #c7c7c7, -14px -14px 28px #ffffff
+ border-radius 12px
+ background #eaeaea
+ font-size .9em
+ color #212121
 </style>

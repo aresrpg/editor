@@ -4,8 +4,7 @@
     editor-nav
     editor(:key_name="Files.ITEMS")
       template(#default="{ selected }")
-        item-editor(v-if="items[selected]" :selected_id="selected")
-    entity-editor
+        item-editor(v-if="items[selected]" :id="selected")
   start(v-else)
 </template>
 
