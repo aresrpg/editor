@@ -68,7 +68,7 @@
     span Description:
     text-field(v-model="writable.description")
       template(#default="{ click }")
-        .value(@click="click") {{ readable.description ?? 'no description' }}
+        .value(@click="click") {{ readable.description || 'no description' }}
 
   pre(v-highlightjs v-if="show_json")
     code.json {{ readable }}
@@ -77,9 +77,9 @@
 <script setup>
 import { computed, inject, watch, reactive, onMounted } from 'vue';
 
-import minecraft_items from '../../minecraft_items';
-import Files from '../Files';
-import normalize_item from '../../normalize_item';
+import minecraft_items from '../core/minecraft_items.js';
+import Files from '../core/Files.js';
+import normalize_item from '../core/normalize_item.js';
 
 import field from './editable-field.vue';
 import options from './editable-select.vue';
@@ -88,7 +88,7 @@ import textField from './editable-text.vue';
 const types = ['equipment', 'misc', 'money', 'consumable', 'weapon'];
 const statistics = [
   'vitality',
-  'wisdom',
+  'mind',
   'strength',
   'intelligence',
   'chance',
@@ -109,7 +109,7 @@ const writable = reactive({
   damage: [1, 1],
   stats: {
     vitality: 0,
-    wisdom: 0,
+    mind: 0,
     strength: 0,
     intelligence: 0,
     chance: 0,
@@ -136,13 +136,14 @@ const show_json = inject(`${Files.ITEMS}:json`);
   height max-content
   overflow hidden
   overflow-y auto
-  height calc(100vh - 50px - 1em - 60px)
+  height calc(100vh - 50px - 1em)
   >div
     display flex
     padding-left 2em
     margin-bottom .25em
     flex-flow column nowrap
     padding-top .5em
+    width 200px
     >span
       width 100px
       text-transform uppercase
@@ -164,7 +165,7 @@ const show_json = inject(`${Files.ITEMS}:json`);
         font-weight 900
         &.vitality
           color #C0392B
-        &.wisdom
+        &.mind
           color #8E44AD
         &.strength
           color #6D4C41
@@ -186,6 +187,7 @@ const show_json = inject(`${Files.ITEMS}:json`);
       font-size 1.6em
       height max-content
       padding-left .5em
+      justify-content stretch
 
       &.enchant
         animation enchanted 2s linear infinite reverse

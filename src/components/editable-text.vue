@@ -37,4 +37,6 @@ textarea
  background #eaeaea
  font-size .9em
  color #212121
+ min-width 400px
+ min-height 100px
 </style>

@@ -34,7 +34,7 @@ const validate = value => {
 <style lang="stylus">
 .field
   cursor pointer
-  max-width 200px
+  // max-width 200px
   input.numeric
     width 60px
 </style>

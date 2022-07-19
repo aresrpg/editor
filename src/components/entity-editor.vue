@@ -3,7 +3,7 @@ editor(:key_name="Files.ENTITIES" :right="true")
 </template>
 
 <script setup>
-import Files from '../Files';
+import Files from '../core/Files';
 
 import editor from './editor.vue';
 </script>

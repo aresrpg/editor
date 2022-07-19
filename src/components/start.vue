@@ -1,55 +1,29 @@
 <template lang="pug">
 .start__container
   span Welcome in AresRpg's data editor
-  span Please locate the #[b(:class="{ valid: present(Data[Files.ITEMS].object) }" @click="() => on_pick(Files.ITEMS)") items.json] and #[b(:class="{ valid: present(Data[Files.ENTITIES].object) }" @click="() => on_pick(Files.ENTITIES)") entities.json] files to start
+  span Please locate the #[b(:class="{ valid: present(items) && present(entities) }" @click="on_pick_ares") aresrpg/aresrpg] and #[b(:class="{ valid: present({}) }" @click="() => on_pick(Files.ENTITIES)") aresrpg/resourcepacks] folders to start
 </template>
 
 <script setup>
 import { inject } from 'vue';
 
-import Files from '../Files.js';
-import normalize_item from '../../normalize_item.js';
+import Files from '../core/Files.js';
+import read_aresrpg from '../core/read_aresrpg.js';
 
-const Data = {
-  [Files.ITEMS]: {
-    fields: ['name', 'item', 'type'],
-    object: inject(Files.ITEMS),
-    normalize: normalize_item,
-  },
-  [Files.ENTITIES]: {
-    fields: ['minecraft_entity', 'category', 'display_name'],
-    object: inject(Files.ENTITIES),
-    normalize: x => x,
-  },
-};
+const items = inject(Files.ITEMS);
+const entities = inject(Files.ENTITIES);
 
 const present = obj => !!Object.keys(obj).length;
 
-const assign_content = ({ key, file_content = {} }) => {
-  const { fields, object, normalize } = Data[key];
-  const normalized = Object.fromEntries(
-    Object.entries(file_content).map(([key, value]) => [key, normalize(value)])
-  );
-  if (
-    Object.values(normalized).every(object =>
-      fields.every(field => field in object)
-    )
-  ) {
-    Object.assign(object, normalized);
-  } else alert(`Wrong file structure, this is not ${key}.json`);
-};
-
-const on_pick = async key => {
-  const uploaded = await window
-    .showOpenFilePicker()
-    .then(([file_handle]) => file_handle.getFile())
-    .then(file => file.text());
-
+const on_pick_ares = async () => {
   try {
-    const file_content = JSON.parse(uploaded);
-    assign_content({ key, file_content });
-  } catch (error) {
-    console.error(error);
+    const { items: items_content, entities: entities_content } = await window
+      .showDirectoryPicker()
+      .then(read_aresrpg);
+
+    Object.assign(items, items_content);
+    Object.assign(entities, entities_content);
+  } catch {
   }
 };
 </script>

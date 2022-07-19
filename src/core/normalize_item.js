@@ -10,7 +10,7 @@ export default ({
   damage: unsafe_damage,
   stats: {
     vitality = 0,
-    wisdom = 0,
+    mind = 0,
     strength = 0,
     intelligence = 0,
     chance = 0,
@@ -24,7 +24,7 @@ export default ({
   const enchanted = !!unsafe_enchanted;
   const stats = {
     vitality,
-    wisdom,
+    mind,
     strength,
     intelligence,
     chance,
