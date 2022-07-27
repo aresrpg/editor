@@ -35,13 +35,12 @@ import Files from '../core/Files';
 
 import tween from './tween.vue';
 
-
 const message_box = useMessageBox();
 
 const props = defineProps(['key_name']);
 
-const raw_elements = inject(props.key_name, {})
-const active_tab = inject('selected_editor')
+const raw_elements = inject(props.key_name, {});
+const active_tab = inject('selected_editor');
 
 const items = inject(Files.ITEMS);
 const entities = inject(Files.ENTITIES);
@@ -58,27 +57,35 @@ const Injected = {
     show_json: inject(`${Files.ENTITIES}:json`),
     fancy_name: inject(`${Files.ENTITIES}:fancy_name`),
     select: inject(`${Files.ENTITIES}:select`),
-  }
-}
+  },
+};
 
 const search = computed({
   get: () => Injected[props.key_name].search.value,
-  set: value => {Injected[props.key_name].search.value = value}
-})
+  set: value => {
+    Injected[props.key_name].search.value = value;
+  },
+});
 const show_json = computed({
   get: () => Injected[props.key_name].show_json.value,
-  set: value => {Injected[props.key_name].show_json.value = value}
-})
+  set: value => {
+    Injected[props.key_name].show_json.value = value;
+  },
+});
 const fancy_name = computed({
   get: () => Injected[props.key_name].fancy_name.value,
-  set: value => {Injected[props.key_name].fancy_name.value = value}
-})
+  set: value => {
+    Injected[props.key_name].fancy_name.value = value;
+  },
+});
 const select = computed({
   get: () => Injected[props.key_name].select.value,
-  set: value => {Injected[props.key_name].select.value = value}
-})
+  set: value => {
+    Injected[props.key_name].select.value = value;
+  },
+});
 
-const found_entries_count = inject('entries_count', 0)
+const found_entries_count = inject('entries_count', 0);
 
 const save = () => {};
 

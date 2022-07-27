@@ -1,7 +1,7 @@
 import { useToast } from 'vue-toastification';
 
 import Files from './Files.js';
-import normalize_item from './normalize_item.js';
+import { normalize_item } from './items.js';
 
 const Option = {
   [Files.ITEMS]: {

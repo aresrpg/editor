@@ -1,6 +1,56 @@
 import minecraft_items from './minecraft_items.js';
 
-export default ({
+const equipments = [
+  'helmet',
+  'chestplate',
+  'leggings',
+  'boots',
+  'necklace',
+  'ring',
+  'belt',
+];
+
+const weapons = ['sword', 'axe', 'bow', 'stick'];
+
+export const types = [...equipments, ...weapons, 'misc', 'money', 'consumable'];
+
+export const statistics = [
+  'vitality',
+  'mind',
+  'strength',
+  'intelligence',
+  'chance',
+  'agility',
+];
+
+const map_minecraft_item = type => {
+  switch (type) {
+    case 'helmet':
+      return 'stone';
+    case 'chestplate':
+      return 'leather_chestplate';
+    case 'leggings':
+      return 'leather_leggings';
+    case 'boots':
+      return 'leather_boots';
+    case 'consumable':
+      return 'potion';
+    case 'sword':
+      return 'iron_sword';
+    case 'axe':
+      return 'iron_axe';
+    case 'bow':
+      return 'bow';
+    case 'stick':
+      return 'stick';
+    case 'misc':
+      if (minecraft_items.includes(type)) return type;
+    default:
+      return 'magma_cream';
+  }
+};
+
+export const normalize_item = ({
   name: unsafe_name,
   level: unsafe_level,
   type,
@@ -20,7 +70,7 @@ export default ({
 }) => {
   const name = unsafe_name?.trim() ?? 'name missing';
   const level = unsafe_level || 1;
-  const item = minecraft_items.includes(unsafe_item) ? unsafe_item : 'stone';
+  const item = map_minecraft_item(type);
   const enchanted = !!unsafe_enchanted;
   const stats = {
     vitality,
@@ -42,7 +92,13 @@ export default ({
     : unsafe_description;
 
   switch (type) {
-    case 'equipment':
+    case 'helmet':
+    case 'chestplate':
+    case 'leggings':
+    case 'boots':
+    case 'necklace':
+    case 'ring':
+    case 'belt':
       return {
         name,
         level,
@@ -50,14 +106,6 @@ export default ({
         item,
         enchanted,
         stats,
-        description,
-      };
-    case 'misc':
-      return {
-        name,
-        type,
-        item,
-        enchanted,
         description,
       };
     case 'money':
@@ -77,7 +125,10 @@ export default ({
         enchanted,
         description,
       };
-    case 'weapon':
+    case 'sword':
+    case 'axe':
+    case 'bow':
+    case 'stick':
       return {
         name,
         level,

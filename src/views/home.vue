@@ -27,19 +27,19 @@ import { stored_reactive, stored_ref } from '../core/stored.js';
 const items = stored_reactive(Files.ITEMS);
 const entities = stored_reactive(Files.ENTITIES);
 const can_edit = ref(false);
-const selected_editor = stored_ref('selected_editor', Files.ITEMS)
-const found_entries_count = ref(0)
+const selected_editor = stored_ref('selected_editor', Files.ITEMS);
+const found_entries_count = ref(0);
 
 const Editors = {
   [Files.ITEMS]: {
     editor: itemEditor,
-    content: items
+    content: items,
   },
   [Files.ENTITIES]: {
     editor: entityEditor,
-    content: entities
-  }
-}
+    content: entities,
+  },
+};
 
 const item_search = ref('');
 const entity_search = ref('');
@@ -52,8 +52,8 @@ const entity_select = stored_ref(`${Files.ENTITIES}:select`);
 
 provide(Files.ITEMS, items);
 provide(Files.ENTITIES, entities);
-provide('entries_count', found_entries_count)
-provide('selected_editor', selected_editor)
+provide('entries_count', found_entries_count);
+provide('selected_editor', selected_editor);
 
 provide(`${Files.ITEMS}:search`, item_search);
 provide(`${Files.ENTITIES}:search`, entity_search);

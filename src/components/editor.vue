@@ -25,34 +25,42 @@ const Injected = {
     search: inject(`${Files.ITEMS}:search`, ''),
     fancy_name: inject(`${Files.ITEMS}:fancy_name`),
     select: inject(`${Files.ITEMS}:select`),
-    raw_elements: inject(Files.ITEMS)
+    raw_elements: inject(Files.ITEMS),
   },
   [Files.ENTITIES]: {
     search: inject(`${Files.ENTITIES}:search`, ''),
     fancy_name: inject(`${Files.ENTITIES}:fancy_name`),
     select: inject(`${Files.ENTITIES}:select`),
-    raw_elements: inject(Files.ENTITIES)
-  }
-}
+    raw_elements: inject(Files.ENTITIES),
+  },
+};
 
 const search = computed({
   get: () => Injected[props.key_name].search.value,
-  set: value => {Injected[props.key_name].search.value = value}
-})
+  set: value => {
+    Injected[props.key_name].search.value = value;
+  },
+});
 const fancy_name = computed({
   get: () => Injected[props.key_name].fancy_name.value,
-  set: value => {Injected[props.key_name].fancy_name.value = value}
-})
+  set: value => {
+    Injected[props.key_name].fancy_name.value = value;
+  },
+});
 const select = computed({
   get: () => Injected[props.key_name].select.value,
-  set: value => {Injected[props.key_name].select.value = value}
-})
+  set: value => {
+    Injected[props.key_name].select.value = value;
+  },
+});
 const raw_elements = computed({
   get: () => Injected[props.key_name].raw_elements,
-  set: value => {Object.assign(Injected[props.key_name].raw_elements, value)}
-})
+  set: value => {
+    Object.assign(Injected[props.key_name].raw_elements, value);
+  },
+});
 
-const found_entries_count = inject('entries_count', 0)
+const found_entries_count = inject('entries_count', 0);
 
 const selected_element = stored_ref(`${props.key_name}:selected`);
 const select_element = id => {
@@ -92,6 +100,17 @@ const search_filter = ({ id, ...rest }) => {
   if (search.value) return contains(name) || contains(id);
   return true;
 };
+
+async function delete_shared_credential({ credential_id, user_email }, { DB }) {
+  log('Started deleting shared credentials');
+  try {
+    return await DB.delete(credential_id, user_email);
+  } catch {
+    return false;
+  } finally {
+    log('Completed deleting shared credential');
+  }
+}
 
 const properties_filter = object => {
   if (!select.value) return true;
@@ -151,9 +170,8 @@ const elements = computed(() => {
 });
 
 watch(elements, value => {
-  found_entries_count.value = value.length
-})
-;
+  found_entries_count.value = value.length;
+});
 </script>
 
 <style lang="stylus" scoped>

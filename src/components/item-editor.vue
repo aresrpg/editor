@@ -19,7 +19,7 @@
         .inner(@click="click") {{ readable.type }}
 
   //- minecraft item
-  .item
+  .item(v-if="readable.type === 'misc'")
     span Item:
     options(:options="minecraft_items" v-model="writable.item")
       template(#default="{ click }")
@@ -79,21 +79,11 @@ import { computed, inject, watch, reactive, onMounted } from 'vue';
 
 import minecraft_items from '../core/minecraft_items.js';
 import Files from '../core/Files.js';
-import normalize_item from '../core/normalize_item.js';
+import { normalize_item, types, statistics } from '../core/items.js';
 
 import field from './editable-field.vue';
 import options from './editable-select.vue';
 import textField from './editable-text.vue';
-
-const types = ['equipment', 'misc', 'money', 'consumable', 'weapon'];
-const statistics = [
-  'vitality',
-  'mind',
-  'strength',
-  'intelligence',
-  'chance',
-  'agility',
-];
 
 const props = defineProps(['id']);
 const emits = defineEmits(['update']);
