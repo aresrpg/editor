@@ -43,25 +43,30 @@ const render_model = async ({
   clearInterval(animation_timer.value);
 
   if (model_json && model_texture_blob) {
-  const { elements, textures } = MinecraftModel.fromJson(normalize_json_display(model_json), []);
-  const textureLoader = new MinecraftTextureLoader();
-  const texture = await textureLoader.load(URL.createObjectURL(model_texture_blob));
-
-  elements.forEach(element => {
-    const geometry = new ElementGeometry(element, textures).translate(
-      -8,
-      -8,
-      -8
+    const { elements, textures } = MinecraftModel.fromJson(
+      normalize_json_display(model_json),
+      []
     );
-    const mesh = new ElementMesh(geometry, textures);
-    mesh.resolveTextures(() => texture);
-    scene.add(mesh);
-  });
+    const textureLoader = new MinecraftTextureLoader();
+    const texture = await textureLoader.load(
+      URL.createObjectURL(model_texture_blob)
+    );
 
-  let index = 0;
-  animation_timer.value = setInterval(() => {
-    texture.setAnimationFrame(index++);
-  }, 50 * frametime);
+    elements.forEach(element => {
+      const geometry = new ElementGeometry(element, textures).translate(
+        -8,
+        -8,
+        -8
+      );
+      const mesh = new ElementMesh(geometry, textures);
+      mesh.resolveTextures(() => texture);
+      scene.add(mesh);
+    });
+
+    let index = 0;
+    animation_timer.value = setInterval(() => {
+      texture.setAnimationFrame(index++);
+    }, 50 * frametime);
   }
 };
 

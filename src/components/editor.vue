@@ -13,56 +13,57 @@
 </template>
 
 <script setup>
-import { inject, computed, watch } from 'vue';
+import { inject, computed } from 'vue';
 
-import Files from '../core/Files';
-import { stored_ref } from '../core/stored';
+import Editors from '../core/Editors';
+import Folders from '../core/Folders';
+import stored_ref from '../core/stored_ref';
 
-const props = defineProps(['key_name']);
+const props = defineProps(['editor']);
 
 const Injected = {
-  [Files.ITEMS]: {
-    search: inject(`${Files.ITEMS}:search`, ''),
-    fancy_name: inject(`${Files.ITEMS}:fancy_name`),
-    select: inject(`${Files.ITEMS}:select`),
-    raw_elements: inject(Files.ITEMS),
+  [Editors.ITEMS]: {
+    search: inject(`${Editors.ITEMS}:search`, ''),
+    fancy_name: inject(`${Editors.ITEMS}:fancy_name`),
+    select: inject(`${Editors.ITEMS}:select`),
+    raw_elements: inject(Folders.ARESRPG).data['items.json'],
   },
-  [Files.ENTITIES]: {
-    search: inject(`${Files.ENTITIES}:search`, ''),
-    fancy_name: inject(`${Files.ENTITIES}:fancy_name`),
-    select: inject(`${Files.ENTITIES}:select`),
-    raw_elements: inject(Files.ENTITIES),
+  [Editors.ENTITIES]: {
+    search: inject(`${Editors.ENTITIES}:search`, ''),
+    fancy_name: inject(`${Editors.ENTITIES}:fancy_name`),
+    select: inject(`${Editors.ENTITIES}:select`),
+    raw_elements: inject(Folders.ARESRPG).data['entities.json'],
   },
 };
 
 const search = computed({
-  get: () => Injected[props.key_name].search.value,
+  get: () => Injected[props.editor].search.value,
   set: value => {
-    Injected[props.key_name].search.value = value;
+    Injected[props.editor].search.value = value;
   },
 });
 const fancy_name = computed({
-  get: () => Injected[props.key_name].fancy_name.value,
+  get: () => Injected[props.editor].fancy_name.value,
   set: value => {
-    Injected[props.key_name].fancy_name.value = value;
+    Injected[props.editor].fancy_name.value = value;
   },
 });
 const select = computed({
-  get: () => Injected[props.key_name].select.value,
+  get: () => Injected[props.editor].select.value,
   set: value => {
-    Injected[props.key_name].select.value = value;
+    Injected[props.editor].select.value = value;
   },
 });
 const raw_elements = computed({
-  get: () => Injected[props.key_name].raw_elements,
+  get: () => Injected[props.editor].raw_elements,
   set: value => {
-    Object.assign(Injected[props.key_name].raw_elements, value);
+    Object.assign(Injected[props.editor].raw_elements, value);
   },
 });
 
 const found_entries_count = inject('entries_count', 0);
 
-const selected_element = stored_ref(`${props.key_name}:selected`);
+const selected_element = stored_ref(`${props.editor}:selected`);
 const select_element = id => {
   if (selected_element.value === id) selected_element.value = null;
   else selected_element.value = id;
@@ -71,15 +72,8 @@ const select_element = id => {
 const contains = (string = '') =>
   string.toLowerCase().includes(search.value.toLowerCase());
 
-const extract = get_property =>
-  Array.from(
-    Object.values(raw_elements.value)
-      .reduce((set, object) => set.add(get_property(object)), new Set())
-      .values()
-  ).sort();
-
 const Extractors = {
-  [Files.ITEMS]: {
+  [Editors.ITEMS]: {
     type: ({ type }) => type,
     item: ({ item }) => item,
     name: ({ name }) => name,
@@ -87,7 +81,7 @@ const Extractors = {
     enchanted: ({ enchanted }) => enchanted,
     description: ({ description }) => description,
   },
-  [Files.ENTITIES]: {
+  [Editors.ENTITIES]: {
     type: ({ category }) => category,
     name: ({ display_name }) => display_name,
     xp: ({ xp }) => xp,
@@ -96,21 +90,10 @@ const Extractors = {
 };
 
 const search_filter = ({ id, ...rest }) => {
-  const name = Extractors[props.key_name].name(rest);
+  const name = Extractors[props.editor].name(rest);
   if (search.value) return contains(name) || contains(id);
   return true;
 };
-
-async function delete_shared_credential({ credential_id, user_email }, { DB }) {
-  log('Started deleting shared credentials');
-  try {
-    return await DB.delete(credential_id, user_email);
-  } catch {
-    return false;
-  } finally {
-    log('Completed deleting shared credential');
-  }
-}
 
 const properties_filter = object => {
   if (!select.value) return true;
@@ -127,7 +110,7 @@ const properties_filter = object => {
     .map(([type, types]) => [type, Array.from(types.values())])
     .every(([type, types]) =>
       types.find(rule => {
-        const property = Extractors[props.key_name][type](object);
+        const property = Extractors[props.editor][type](object);
         switch (type) {
           case 'level': {
             const [min, max] = rule.split(':');
@@ -146,13 +129,13 @@ const properties_filter = object => {
 };
 
 const Options = {
-  [Files.ITEMS]: {
+  [Editors.ITEMS]: {
     insert_key: ([id, value]) => {
       const final_id = fancy_name.value ? value.name : id;
       return { id: final_id, _id: id, ...value };
     },
   },
-  [Files.ENTITIES]: {
+  [Editors.ENTITIES]: {
     insert_key: ([id, value], index) => {
       const final_id = fancy_name.value ? value.display_name : id;
       return { id: final_id, ...value };
@@ -161,16 +144,14 @@ const Options = {
 };
 
 const elements = computed(() => {
-  const { insert_key } = Options[props.key_name];
-  return Object.entries(raw_elements.value)
+  const { insert_key } = Options[props.editor];
+  const result = Object.entries(raw_elements.value)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(insert_key)
     .filter(search_filter)
     .filter(properties_filter);
-});
-
-watch(elements, value => {
-  found_entries_count.value = value.length;
+  found_entries_count.value = result.length;
+  return result;
 });
 </script>
 

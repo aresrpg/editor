@@ -1,4 +1,4 @@
-import minecraft_items from './minecraft_items.js';
+import minecraft_items from './minecraft_items.json';
 
 const equipments = [
   'helmet',
@@ -55,6 +55,7 @@ export const normalize_item = ({
   level: unsafe_level,
   type,
   item: unsafe_item,
+  custom_model_data = 0,
   enchanted: unsafe_enchanted,
   critical: unsafe_critical,
   damage: unsafe_damage,
@@ -91,6 +92,15 @@ export const normalize_item = ({
     ? unsafe_description.join(' ')
     : unsafe_description;
 
+  const mandatory_fields = {
+    name,
+    type,
+    item,
+    custom_model_data,
+    enchanted,
+    description,
+  };
+
   switch (type) {
     case 'helmet':
     case 'chestplate':
@@ -100,53 +110,38 @@ export const normalize_item = ({
     case 'ring':
     case 'belt':
       return {
-        name,
+        ...mandatory_fields,
         level,
-        type,
-        item,
-        enchanted,
         stats,
-        description,
       };
     case 'money':
       return {
+        ...mandatory_fields,
         name: 'kAres',
-        type,
         item: 'gold_ingot',
         description:
           'En regardant de plus pres on peut meme y voir la tete de sceat, sa valeure est inestimable',
       };
     case 'consumable':
       return {
-        name,
+        ...mandatory_fields,
         level,
-        type,
-        item,
-        enchanted,
-        description,
       };
     case 'sword':
     case 'axe':
     case 'bow':
     case 'stick':
       return {
-        name,
+        ...mandatory_fields,
         level,
-        type,
-        item,
-        enchanted,
         stats,
         critical,
         damage,
-        description,
       };
     default:
       return {
-        name,
+        ...mandatory_fields,
         type: 'misc',
-        item,
-        enchanted,
-        description,
       };
   }
 };

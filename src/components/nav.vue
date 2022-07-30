@@ -17,71 +17,81 @@ nav
     v-model="select"
     placeholder="filters"
     collapse-tags
-    :options="Options[props.key_name].filters.value"
+    :options="Options[props.editor].filters.value"
   )
   q-tabs.tabs(v-model="active_tab")
-    q-tab-pane(:name="Files.ITEMS" title="Items")
-    q-tab-pane(:name="Files.ENTITIES" title="Entities")
-    q-tab-pane(:name="Files.TEXTURES" title="Vanilla" disabled)
+    q-tab-pane(:name="Editors.ITEMS" title="Items")
+    q-tab-pane(:name="Editors.ENTITIES" title="Entities")
   q-button.save(@click="save" theme="secondary" type="icon" icon="q-icon-save")
   q-button.clear(@click="on_reset" theme="secondary" type="icon" icon="q-icon-close")
 </template>
 
 <script setup>
 import { useMessageBox } from '@qvant/qui-max';
-import { inject, computed, watchEffect } from 'vue';
+import { inject, computed } from 'vue';
 
-import Files from '../core/Files';
+import Editors from '../core/Editors';
+import Folders from '../core/Folders';
 
 import tween from './tween.vue';
 
 const message_box = useMessageBox();
 
-const props = defineProps(['key_name']);
+const props = defineProps(['editor']);
+const get_filename = () => {
+  switch (props.editor) {
+    case Editors.ITEMS:
+      return 'items.json';
+    case Editors.ENTITIES:
+      return 'entities.json';
+    default:
+      throw new Error(`unknow editor '${props.editor}'`);
+  }
+};
 
-const raw_elements = inject(props.key_name, {});
+const raw_elements = inject(Folders.ARESRPG).data[get_filename()];
 const active_tab = inject('selected_editor');
 
-const items = inject(Files.ITEMS);
-const entities = inject(Files.ENTITIES);
+const items = inject(Folders.ARESRPG).data['items.json'];
+const entities = inject(Folders.ARESRPG).data['entities.json'];
 
 const Injected = {
-  [Files.ITEMS]: {
-    search: inject(`${Files.ITEMS}:search`, ''),
-    show_json: inject(`${Files.ITEMS}:json`),
-    fancy_name: inject(`${Files.ITEMS}:fancy_name`),
-    select: inject(`${Files.ITEMS}:select`),
+  [Editors.ITEMS]: {
+    search: inject(`${Editors.ITEMS}:search`, ''),
+    show_json: inject(`${Editors.ITEMS}:json`),
+    fancy_name: inject(`${Editors.ITEMS}:fancy_name`),
+    select: inject(`${Editors.ITEMS}:select`),
   },
-  [Files.ENTITIES]: {
-    search: inject(`${Files.ENTITIES}:search`, ''),
-    show_json: inject(`${Files.ENTITIES}:json`),
-    fancy_name: inject(`${Files.ENTITIES}:fancy_name`),
-    select: inject(`${Files.ENTITIES}:select`),
+  [Editors.ENTITIES]: {
+    search: inject(`${Editors.ENTITIES}:search`, ''),
+    show_json: inject(`${Editors.ENTITIES}:json`),
+    fancy_name: inject(`${Editors.ENTITIES}:fancy_name`),
+    select: inject(`${Editors.ENTITIES}:select`),
   },
 };
 
 const search = computed({
-  get: () => Injected[props.key_name].search.value,
+  get: () => Injected[props.editor].search.value,
   set: value => {
-    Injected[props.key_name].search.value = value;
+    Injected[props.editor].search.value = value;
   },
 });
 const show_json = computed({
-  get: () => Injected[props.key_name].show_json.value,
+  get: () => Injected[props.editor].show_json.value,
   set: value => {
-    Injected[props.key_name].show_json.value = value;
+    Injected[props.editor].show_json.value = value;
   },
 });
 const fancy_name = computed({
-  get: () => Injected[props.key_name].fancy_name.value,
+  get: () => Injected[props.editor].fancy_name.value,
   set: value => {
-    Injected[props.key_name].fancy_name.value = value;
+    Injected[props.editor].fancy_name.value = value;
   },
 });
 const select = computed({
-  get: () => Injected[props.key_name].select.value,
+  get: () => Injected[props.editor].select.value,
   set: value => {
-    Injected[props.key_name].select.value = value;
+    Injected[props.editor].select.value = value;
   },
 });
 
@@ -100,8 +110,8 @@ const on_reset = async () => {
 
     Object.keys(items).forEach(key => delete items[key]);
     Object.keys(entities).forEach(key => delete entities[key]);
-    localStorage.removeItem(Files.ITEMS);
-    localStorage.removeItem(Files.ENTITIES);
+    localStorage.removeItem(Editors.ITEMS);
+    localStorage.removeItem(Editors.ENTITIES);
   } catch (error) {
     console.error(error);
   }
@@ -117,14 +127,14 @@ const extract = get_property =>
   ).sort();
 
 const Options = {
-  [Files.ITEMS]: {
+  [Editors.ITEMS]: {
     existing_types: computed(() => extract(({ type }) => type)),
     existing_items: computed(() => extract(({ item }) => item)),
     filters: computed(() => [
       {
         label: 'Type',
         value: 'type',
-        children: Options[Files.ITEMS].existing_types.value.map(type => ({
+        children: Options[Editors.ITEMS].existing_types.value.map(type => ({
           label: type,
           value: make_key('type', type),
         })),
@@ -142,7 +152,7 @@ const Options = {
       {
         label: 'Item',
         value: 'item',
-        children: Options[Files.ITEMS].existing_items.value.map(item => ({
+        children: Options[Editors.ITEMS].existing_items.value.map(item => ({
           label: item,
           value: make_key('item', item),
         })),
@@ -164,13 +174,13 @@ const Options = {
       },
     ]),
   },
-  [Files.ENTITIES]: {
+  [Editors.ENTITIES]: {
     existing_types: computed(() => extract(({ category }) => category)),
     filters: computed(() => [
       {
         label: 'Category',
         value: 'type',
-        children: Options[Files.ENTITIES].existing_types.value.map(type => ({
+        children: Options[Editors.ENTITIES].existing_types.value.map(type => ({
           label: type,
           value: make_key('type', type),
         })),

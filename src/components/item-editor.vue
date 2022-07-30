@@ -5,63 +5,67 @@
     field(v-model="readable.name")
       template(#default="{ click }")
         .title(:class="{ enchant: readable.enchanted }" @click="click") {{ readable.name }}
-
     //- level
     .level(v-if="readable.level")
       span Lvl.
       field(v-if="writable.level" :numeric="true" v-model="writable.level")
 
-  //- item category
-  .type
-    span Type:
-    options(:options="types" v-model="writable.type")
-      template(#default="{ click }")
-        .inner(@click="click") {{ readable.type }}
+  .item__middle
+    .left
+      //- item category
+      .type
+        span Type:
+        options(:options="types" v-model="writable.type")
+          template(#default="{ click }")
+            .inner(@click="click") {{ readable.type }}
 
-  //- minecraft item
-  .item(v-if="readable.type === 'misc'")
-    span Item:
-    options(:options="minecraft_items" v-model="writable.item")
-      template(#default="{ click }")
-        .inner(@click="click") {{ readable.item }}
+      //- minecraft item
+      .item(v-if="readable.type === 'misc'")
+        span Item:
+        options(:options="minecraft_items" v-model="writable.item")
+          template(#default="{ click }")
+            .inner(@click="click") {{ readable.item }}
 
-  //- enchanted
-  .enchanted
-    span Enchanted:
-    q-switch(v-model="writable.enchanted")
+      //- enchanted
+      .enchanted
+        span Enchanted:
+        q-switch(v-model="writable.enchanted")
 
-  //- critical
-  .critical(v-if="readable.critical")
-    span Critical:
-    .multiple
-      field(:numeric="true" v-model="writable.critical[0]")
-        template(#default="{ click }")
-          .inner(@click="click") {{ readable.critical[0] }}
-      .sep /
-      field(:numeric="true" v-model="writable.critical[1]")
-        template(#default="{ click }")
-          .inner(@click="click") {{ readable.critical[1] }}
+      //- critical
+      .critical(v-if="readable.critical")
+        span Critical:
+        .multiple
+          field(:numeric="true" v-model="writable.critical[0]")
+            template(#default="{ click }")
+              .inner(@click="click") {{ readable.critical[0] }}
+          .sep /
+          field(:numeric="true" v-model="writable.critical[1]")
+            template(#default="{ click }")
+              .inner(@click="click") {{ readable.critical[1] }}
 
-  //- damage
-  .damage(v-if="readable.damage")
-    span Damage:
-    .multiple
-      field(:numeric="true" v-model="writable.critical[0]")
-        template(#default="{ click }")
-          .inner(@click="click") {{ readable.critical[0] }}
-      .sep to
-      field(:numeric="true" v-model="writable.critical[1]")
-        template(#default="{ click }")
-          .inner(@click="click") {{ readable.critical[1] }}
+      //- damage
+      .damage(v-if="readable.damage")
+        span Damage:
+        .multiple
+          field(:numeric="true" v-model="writable.critical[0]")
+            template(#default="{ click }")
+              .inner(@click="click") {{ readable.critical[0] }}
+          .sep to
+          field(:numeric="true" v-model="writable.critical[1]")
+            template(#default="{ click }")
+              .inner(@click="click") {{ readable.critical[1] }}
 
-  //- item stats
-  .stats.full(v-if="readable.stats")
-    span Stats:
-    .stat(v-for="stat in statistics" :key="stat")
-      .name(:class="stat") {{ stat }}:
-      field(:numeric="true" :allowNegative="true" v-model="writable.stats[stat]")
-        template(#default="{ click }")
-          .value(@click="click") {{ readable.stats[stat] }}
+      //- item stats
+      .stats.full(v-if="readable.stats")
+        span Stats:
+        .stat(v-for="stat in statistics" :key="stat")
+          .name(:class="stat") {{ stat }}:
+          field(:numeric="true" :allowNegative="true" v-model="writable.stats[stat]")
+            template(#default="{ click }")
+              .value(@click="click") {{ readable.stats[stat] }}
+
+    .right
+      img.texture
 
   //- item description
   .desc.full
@@ -75,11 +79,12 @@
 </template>
 
 <script setup>
-import { computed, inject, watch, reactive, onMounted } from 'vue';
+import { computed, inject, watch, reactive } from 'vue';
 
-import minecraft_items from '../core/minecraft_items.js';
-import Files from '../core/Files.js';
+import minecraft_items from '../core/minecraft_items.json';
+import Editors from '../core/Editors.js';
 import { normalize_item, types, statistics } from '../core/items.js';
+import Folders from '../core/Folders';
 
 import field from './editable-field.vue';
 import options from './editable-select.vue';
@@ -87,7 +92,7 @@ import textField from './editable-text.vue';
 
 const props = defineProps(['id']);
 const emits = defineEmits(['update']);
-const items = inject(Files.ITEMS);
+const items = inject(Folders.ARESRPG).data['items.json'];
 
 const writable = reactive({
   name: 'name missing',
@@ -109,12 +114,10 @@ const writable = reactive({
 });
 const readable = computed(() => normalize_item(writable));
 
-onMounted(() => Object.assign(writable, items[props.id]));
-
 watch(props, ({ id }) => Object.assign(writable, items[id]), { deep: true });
 watch(writable, value => emits('update', normalize_item(value)));
 
-const show_json = inject(`${Files.ITEMS}:json`);
+const show_json = inject(`${Editors.ITEMS}:json`);
 </script>
 
 <style lang="stylus" scoped>
@@ -140,32 +143,55 @@ const show_json = inject(`${Files.ITEMS}:json`);
       font-size .7em
       font-weight 900
 
+  .item__middle
+    display flex
+    flex-flow row nowrap
+    width 100%
+    align-items center
+    .left
+      >div
+        display flex
+        flex-flow column nowrap
+        padding-top .5em
+        width 200px
+
+        .inner
+          color #34495E
+          font-weight 600
+        >span
+          width 100px
+          text-transform uppercase
+          font-size .7em
+          font-weight 900
+      .stats
+        flex-flow column nowrap
+        .stat
+          margin-left 1em
+          display flex
+          .name
+            text-transform uppercase
+            font-size .7em
+            width 100px
+            font-weight 900
+            &.vitality
+              color #C0392B
+            &.mind
+              color #8E44AD
+            &.strength
+              color #6D4C41
+            &.intelligence
+              color #F39C12
+            &.chance
+              color #2980B9
+            &.agility
+              color #27AE60
+    .right
+      width 100%
+      background crimson
+
+
   .full
     width 100%
-
-  .stats
-    flex-flow column nowrap
-    .stat
-      margin-left 1em
-      display flex
-      .name
-        text-transform uppercase
-        font-size .7em
-        width 100px
-        font-weight 900
-        &.vitality
-          color #C0392B
-        &.mind
-          color #8E44AD
-        &.strength
-          color #6D4C41
-        &.intelligence
-          color #F39C12
-        &.chance
-          color #2980B9
-        &.agility
-          color #27AE60
-
 
   .name
     display flex

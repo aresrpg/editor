@@ -1,62 +1,92 @@
 <template lang="pug">
-.start__container
+.start__container(v-if="interacted")
   span Welcome in AresRpg's data editor
-  span Please locate the #[b(:class="{ valid: present(items) && present(entities) }" @click="on_pick_ares") aresrpg/aresrpg] and #[b(:class="{ valid: present({}) }" @click="on_pick_pack") aresrpg/resourcepacks] folders to start
-  three(
-    v-if="texture"
-    :model_json="json"
-    :model_texture_blob="texture"
-  )
+  span Please locate the #[b(:class="{ valid: present(ARESRPG) }" @click="on_pick_ares") aresrpg/aresrpg] and #[b(:class="{ valid: present(RESOURCES) }" @click="on_pick_resources") aresrpg/resourcepacks] folders to start
+.please__interact(v-else)
+  q-button(@click="interacted = true") Start editing !
 </template>
 
 <script setup>
-import { inject, ref } from 'vue';
+import { inject, ref, watchEffect } from 'vue';
+import { get, set } from 'idb-keyval';
+import { useToast } from 'vue-toastification';
+import { iter } from 'iterator-helper';
 
-import Files from '../core/Files.js';
-import read_aresrpg from '../core/read_aresrpg.js';
+import Folders from '../core/Folders.js';
+import { grant_permission, parse_directory } from '../core/directories.js';
+import { normalize_item } from '../core/items.js';
 
-import three from './three.vue';
+const ARESRPG = inject(Folders.ARESRPG);
+const RESOURCES = inject(Folders.RESOURCES);
+const interacted = ref(false);
 
-const items = inject(Files.ITEMS);
-const entities = inject(Files.ENTITIES);
-
+const toast = useToast();
 const present = obj => !!Object.keys(obj).length;
-const json = ref();
-const texture = ref();
 
-const on_pick_pack = async () => {
-  await window
-    .showOpenFilePicker({ multiple: true })
-    .then(async ([json_handle, texture_handle]) => {
-      json.value = await json_handle
-        .getFile()
-        .then(file => file.text())
-        .then(text => JSON.parse(text));
-      texture.value = await texture_handle.getFile();
-    });
-  try {
-    // const { items: items_content, entities: entities_content } = await window
-    //   .showDirectoryPicker()
-    //   .then(read_aresrpg);
-    // Object.assign(items, items_content);
-    // Object.assign(entities, entities_content);
-  } catch {}
+const transform_values = ({ object, transform }) =>
+  Object.fromEntries(
+    Object.entries(object).map(([key, value]) => [key, transform(value)])
+  );
+
+const Folder = {
+  aresrpg: {
+    key: Folders.ARESRPG,
+    validate: ({ 'package.json': { name } }) => name === '@aresrpg/aresrpg',
+    handle: ({
+      data,
+      data: { 'items.json': items_json, 'entities.json': entities_json },
+    }) => {
+      const normalized_items = transform_values({
+        object: items_json,
+        transform: normalize_item,
+      });
+      Object.assign(ARESRPG, {
+        data: { ...data, 'items.json': normalized_items },
+      });
+    },
+  },
+  resources: {
+    key: 'resources',
+    validate: ({ assets: { minecraft = {} } = {} } = {}) =>
+      'models' in minecraft,
+    handle: folder => Object.assign(RESOURCES, folder),
+  },
 };
 
-const on_pick_ares = async () => {
-  try {
-    const { items: items_content, entities: entities_content } = await window
-      .showDirectoryPicker()
-      .then(read_aresrpg);
+const on_pick =
+  ({ validate, handle, key }) =>
+  async () => {
+    const directory_handle = await window.showDirectoryPicker();
+    if (!directory_handle) return;
 
-    Object.assign(items, items_content);
-    Object.assign(entities, entities_content);
-  } catch {}
+    const folder = await parse_directory(directory_handle);
+    if (validate(folder)) {
+      handle(folder);
+      await set(key, directory_handle);
+    } else
+      toast(`This doesn't seem to be the correct folder 😞`, { type: 'error' });
+  };
+
+const on_pick_ares = on_pick(Folder.aresrpg);
+const on_pick_resources = on_pick(Folder.resources);
+
+const init_folder = async ({ validate, handle, key }) => {
+  const directory_handle = await get(key);
+  if (directory_handle) {
+    await grant_permission(directory_handle);
+    const folder = await parse_directory(directory_handle);
+    if (validate(folder)) handle(folder);
+  }
 };
+
+watchEffect(async () => {
+  if (interacted.value)
+    await iter(Object.values(Folder)).toAsyncIterator().forEach(init_folder);
+});
 </script>
 
 <style lang="stylus" scoped>
-.start__container
+.start__container, .please__interact
   width 100vw
   height 100vh
   display flex
