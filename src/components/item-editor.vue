@@ -1,17 +1,17 @@
 <template lang="pug">
 .item__container
   //- name
-  .name.full
-    field(v-model="readable.name")
-      template(#default="{ click }")
-        .title(:class="{ enchant: readable.enchanted }" @click="click") {{ readable.name }}
-    //- level
-    .level(v-if="readable.level")
-      span Lvl.
-      field(v-if="writable.level" :numeric="true" v-model="writable.level")
 
   .item__middle
     .left
+      .name.full
+        field(v-model="readable.name")
+          template(#default="{ click }")
+            .title(:class="{ enchant: readable.enchanted }" @click="click") {{ readable.name }}
+        //- level
+        .level(v-if="readable.level")
+          span Lvl.
+          field(v-if="writable.level" :numeric="true" v-model="writable.level")
       //- item category
       .type
         span Type:
@@ -63,23 +63,28 @@
           field(:numeric="true" :allowNegative="true" v-model="writable.stats[stat]")
             template(#default="{ click }")
               .value(@click="click") {{ readable.stats[stat] }}
+      //- item description
+      .desc.full
+        span Description:
+        text-field(v-model="writable.description")
+          template(#default="{ click }")
+            .value(@click="click") {{ readable.description || 'no description' }}
 
     .right
-      img.texture
-
-  //- item description
-  .desc.full
-    span Description:
-    text-field(v-model="writable.description")
-      template(#default="{ click }")
-        .value(@click="click") {{ readable.description || 'no description' }}
+      three.three(
+        v-if="is_3D_model"
+        :model_json="item_model"
+        :model_texture_blob="item_texture"
+        :model_mcmeta_json="item_mcmeta"
+      )
+      img.texture(v-else:src="URL.createObjectURL(texture)")
 
   pre(v-highlightjs v-if="show_json")
     code.json {{ readable }}
 </template>
 
 <script setup>
-import { computed, inject, watch, reactive } from 'vue';
+import { computed, inject, watch, reactive, ref, onMounted } from 'vue';
 
 import minecraft_items from '../core/minecraft_items.json';
 import Editors from '../core/Editors.js';
@@ -89,10 +94,48 @@ import Folders from '../core/Folders';
 import field from './editable-field.vue';
 import options from './editable-select.vue';
 import textField from './editable-text.vue';
+import three from './three.vue';
 
 const props = defineProps(['id']);
 const emits = defineEmits(['update']);
 const items = inject(Folders.ARESRPG).data['items.json'];
+const RESOURCES = inject(Folders.RESOURCES);
+
+const item_model = computed(() => {
+  const {
+    assets: {
+      minecraft: {
+        models: { custom: { [`${props.id}.json`]: model } = {} },
+      },
+    },
+  } = RESOURCES;
+  return model;
+});
+const item_texture = computed(() => {
+  const {
+    assets: {
+      minecraft: {
+        textures: { custom: { [`${props.id}.png`]: texture } = {} },
+      },
+    },
+  } = RESOURCES;
+  if (texture) return texture;
+});
+const item_mcmeta = computed(() => {
+  const {
+    assets: {
+      minecraft: {
+        textures: { custom: { [`${props.id}.mcmeta`]: mcmeta } = {} },
+      },
+    },
+  } = RESOURCES;
+  return mcmeta;
+});
+
+const is_3D_model = computed(() => {
+  const model = item_model.value ?? {};
+  return 'elements' in model;
+});
 
 const writable = reactive({
   name: 'name missing',
@@ -111,6 +154,7 @@ const writable = reactive({
     agility: 0,
   },
   description: '',
+  custom_model_data: 0,
 });
 const readable = computed(() => normalize_item(writable));
 
@@ -149,6 +193,7 @@ const show_json = inject(`${Editors.ITEMS}:json`);
     width 100%
     align-items center
     .left
+      width 40%
       >div
         display flex
         flex-flow column nowrap
@@ -185,48 +230,50 @@ const show_json = inject(`${Editors.ITEMS}:json`);
               color #2980B9
             &.agility
               color #27AE60
+      .name
+        display flex
+        flex-flow row nowrap
+        width 100%
+        margin-bottom 1em
+        padding-left 0
+        .title
+          position relative
+          font-size 1.6em
+          height max-content
+          padding-left .5em
+          justify-content stretch
+
+          &.enchant
+            animation enchanted 2s linear infinite reverse
+
+          &::before
+            content ''
+            position absolute
+            top 0
+            left @top
+            width 5px
+            bottom 0
+            border-radius 3px
+            background var(--color-primary)
+        .level
+          font-size 1.2em
+          margin-left 1em
+          display flex
+          flex-flow row nowrap
+          text-decoration underline
+          justify-content center
+          align-items baseline
+          color #27AE60
+          font-weight 600
     .right
-      width 100%
-      background crimson
+      // width 100%
+      .three
+        border 1px solid rgba(#7F8C8D .4)
+        border-radius 5px
 
 
   .full
     width 100%
-
-  .name
-    display flex
-    flex-flow row nowrap
-    margin-bottom 1em
-    padding-left 0
-    .title
-      position relative
-      font-size 1.6em
-      height max-content
-      padding-left .5em
-      justify-content stretch
-
-      &.enchant
-        animation enchanted 2s linear infinite reverse
-
-      &::before
-        content ''
-        position absolute
-        top 0
-        left @top
-        width 5px
-        bottom 0
-        border-radius 3px
-        background var(--color-primary)
-    .level
-      font-size 1.2em
-      margin-left 1em
-      display flex
-      flex-flow row nowrap
-      text-decoration underline
-      justify-content center
-      align-items baseline
-      color #27AE60
-      font-weight 600
 
   pre
     margin-top 3em

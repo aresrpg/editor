@@ -8,19 +8,22 @@ import OrbitControls from 'three-orbitcontrols';
 import { MinecraftTextureLoader, ElementMesh } from '@oran9e/three-mcmodel';
 import { MinecraftModel } from '@oran9e/minecraft-model';
 import { ElementGeometry } from '@oran9e/three-mcmodel/dist/geometry';
-import { ref, onMounted, watch, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
+
+const WIDTH = 600
+const HEIGHT = 500
 
 const props = defineProps([
   'model_json',
   'model_texture_blob',
-  'model_mcmeta_json',
+  'model_mcmeta_json'
 ]);
 const canvas = ref(null);
 const animation_timer = ref(0);
 const scene = new Scene();
 const camera = new PerspectiveCamera(
-  70,
-  window.innerWidth / window.innerHeight,
+  20,
+  WIDTH / HEIGHT,
   0.01,
   1000
 );
@@ -33,7 +36,7 @@ const normalize_json_display = ({ display: { fixed }, ...item }) => ({
   },
 });
 
-camera.position.set(16, 16, 64);
+camera.position.set(16, 0, 100);
 
 const render_model = async ({
   model_json,
@@ -55,7 +58,7 @@ const render_model = async ({
     elements.forEach(element => {
       const geometry = new ElementGeometry(element, textures).translate(
         -8,
-        -8,
+        -4,
         -8
       );
       const mesh = new ElementMesh(geometry, textures);
@@ -78,15 +81,15 @@ onMounted(async () => {
   });
   const controls = new OrbitControls(camera, renderer.domElement);
 
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(WIDTH, HEIGHT);
+  controls.enableKeys = false;
+  controls.screenSpacePanning = true;
+
   // window.addEventListener('resize', () => {
   //   camera.aspect = window.innerWidth / window.innerHeight;
   //   camera.updateProjectionMatrix();
   //   renderer.setSize(window.innerWidth, window.innerHeight);
   // });
-
-  controls.enableKeys = false;
-  controls.screenSpacePanning = true;
 
   await render_model(props);
 
