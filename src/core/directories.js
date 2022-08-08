@@ -34,37 +34,39 @@ export const parse_directory = directory_handle =>
           ...directory,
           [name]: await parse_directory(handle),
         };
-      return {
-        ...directory,
-        [name]: await parse_file(await handle.getFile()),
-      };
-    }, {});
-
-export const save_directory = ({ directory_handle, object }) =>
-  iter(Object.entries(object))
-    .toAsyncIterator()
-    .map(async ([file_name, file_content]) => {
-      const extension = file_extension(file_name);
-      if (extension) {
-        const file_handle = await directory_handle.getFileHandle(file_name, {
-          create: true,
-        });
-        const writable = await file_handle.createWritable();
-        await writable.write(file_content);
-        await writable.close();
-      } else {
-        const sub_directory_handle = await directory_handle.getDirectoryHandle(
-          file_name,
-          { create: true }
-        );
-        await save_folder({
-          directory_handle: sub_directory_handle,
-          object: file_content,
-        });
+      const file_content = await parse_file(await handle.getFile());
+      if (file_content) {
+        return {
+          ...directory,
+          [name]: file_content,
+        };
       }
-    });
+      return directory;
+    }, {});
 
 export const grant_permission = async handle => {
   const permission = await handle.queryPermission(PERMISSIONS);
   if (permission !== 'granted') await handle.requestPermission(PERMISSIONS);
+};
+
+export const save_file = async ({
+  directory_handle,
+  file_path,
+  file_name,
+  file_content,
+}) => {
+  await grant_permission(directory_handle);
+  const current_directory_handle = await iter(file_path)
+    .toAsyncIterator()
+    .reduce(
+      (handle, folder_name) =>
+        handle.getDirectoryHandle(folder_name, { create: true }),
+      directory_handle
+    );
+  const file_handle = await current_directory_handle.getFileHandle(file_name, {
+    create: true,
+  });
+  const writable = await file_handle.createWritable();
+  await writable.write(file_content);
+  await writable.close();
 };

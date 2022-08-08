@@ -1,7 +1,6 @@
 <template lang="pug">
 .item__container
   //- name
-
   .item__middle
     .left
       .name.full
@@ -70,26 +69,42 @@
           template(#default="{ click }")
             .value(@click="click") {{ readable.description || 'no description' }}
 
-    .right
+    .right(v-if="show_texture_upload")
+      q-upload(
+        :value="uploaded_files"
+        :accept="['application/JSON', 'image/png']"
+        :multiple="true"
+        :limit="3"
+        text-upload-file="Upload item.json & item.png"
+        @select="on_upload_model"
+        @clear="on_clear_model"
+        @clear-all="uploaded_files = []"
+      )
+      q-button.change(size="small" :theme="all_files_uploaded ? 'primary' : 'secondary'" @click="on_confirm_texture") {{ all_files_uploaded ? 'confirm' : 'cancel '}}
+    .right(v-else)
       three.three(
         v-if="is_3D_model"
         :model_json="item_model"
         :model_texture_blob="item_texture"
         :model_mcmeta_json="item_mcmeta"
       )
-      img.texture(v-else:src="URL.createObjectURL(texture)")
+      img.texture(v-else-if="item_texture || default_texture" :src="create_url(item_texture ?? default_texture)")
+      .placeholder(v-else) The default texture is not present in the resources pack
+      q-button.change(size="small" theme="secondary" @click="show_texture_upload = true") set texture
 
   pre(v-highlightjs v-if="show_json")
     code.json {{ readable }}
 </template>
 
 <script setup>
-import { computed, inject, watch, reactive, ref, onMounted } from 'vue';
+import { computed, inject, watch, reactive, ref } from 'vue';
+import { useToast } from 'vue-toastification';
 
 import minecraft_items from '../core/minecraft_items.json';
 import Editors from '../core/Editors.js';
 import { normalize_item, types, statistics } from '../core/items.js';
 import Folders from '../core/Folders';
+import { save_file } from '../core/directories.js';
 
 import field from './editable-field.vue';
 import options from './editable-select.vue';
@@ -99,7 +114,91 @@ import three from './three.vue';
 const props = defineProps(['id']);
 const emits = defineEmits(['update']);
 const items = inject(Folders.ARESRPG).data['items.json'];
+
 const RESOURCES = inject(Folders.RESOURCES);
+const ARESRPG_HANDLE = inject(`${Folders.ARESRPG}:handle`);
+const RESOURCES_HANDLE = inject(`${Folders.RESOURCES}:handle`);
+
+const show_texture_upload = ref(false);
+const uploaded_files = ref([]);
+
+const toast = useToast();
+const on_clear_model = file_id => {
+  uploaded_files.value = uploaded_files.value.filter(
+    ({ id }) => id !== file_id
+  );
+};
+
+const on_upload_model = async (sourceFile, file_id) => {
+  uploaded_files.value.push({
+    id: file_id,
+    sourceFile,
+    name: sourceFile.name,
+  });
+};
+
+const file_extension = file_name => {
+  const parts = file_name.split('.');
+  if (parts.length > 1) return parts.pop();
+};
+
+const all_files_uploaded = computed(() => uploaded_files.value.length === 2);
+
+// TODO save custom_model_data
+
+const on_confirm_texture = async () => {
+  if (all_files_uploaded.value) {
+    const find_file = type =>
+      uploaded_files.value.find(({ name }) => file_extension(name) === type)
+        ?.sourceFile;
+    const model = find_file('json');
+    const texture = find_file('png');
+    const mcmeta = find_file('mcmeta');
+    if (model && texture) {
+      const { value: directory_handle } = RESOURCES_HANDLE;
+      const model_name = `${props.id}.json`;
+      const texture_name = `${props.id}.png`;
+      const mcmeta_name = `${props.id}.mcmeta`;
+
+      RESOURCES.assets.minecraft.models.custom[model_name] = JSON.parse(
+        await model.text()
+      );
+      RESOURCES.assets.minecraft.textures.custom[texture_name] = texture;
+
+      if (mcmeta) {
+        RESOURCES.assets.minecraft.textures.custom[mcmeta_name] = JSON.parse(
+          await mcmeta.text()
+        );
+        await save_file({
+          directory_handle,
+          file_name: mcmeta_name,
+          file_content: mcmeta,
+          file_path: ['assets', 'minecraft', 'textures', 'custom'],
+        });
+      }
+
+      await save_file({
+        directory_handle,
+        file_name: model_name,
+        file_content: model,
+        file_path: ['assets', 'minecraft', 'models', 'custom'],
+      });
+
+      await save_file({
+        directory_handle,
+        file_name: texture_name,
+        file_content: texture,
+        file_path: ['assets', 'minecraft', 'textures', 'custom'],
+      });
+    } else
+      toast('Are you sure you uploaded a model.json and a texture.png ?', {
+        type: 'error',
+      });
+  }
+  show_texture_upload.value = false;
+};
+
+const create_url = blob => URL.createObjectURL(blob);
 
 const item_model = computed(() => {
   const {
@@ -116,6 +215,16 @@ const item_texture = computed(() => {
     assets: {
       minecraft: {
         textures: { custom: { [`${props.id}.png`]: texture } = {} },
+      },
+    },
+  } = RESOURCES;
+  if (texture) return texture;
+});
+const default_texture = computed(() => {
+  const {
+    assets: {
+      minecraft: {
+        textures: { item: { [`${items[props.id].item}.png`]: texture } = {} },
       },
     },
   } = RESOURCES;
@@ -165,6 +274,14 @@ const show_json = inject(`${Editors.ITEMS}:json`);
 </script>
 
 <style lang="stylus" scoped>
+
+.placeholder
+  display flex
+  justify-content center
+  align-items center
+  width 400px
+  height 100px
+
 .item__container
   display flex
   padding 2em 1em
@@ -266,14 +383,24 @@ const show_json = inject(`${Editors.ITEMS}:json`);
           color #27AE60
           font-weight 600
     .right
-      // width 100%
+      display flex
+      flex-flow column nowrap
+      justify-content center
       .three
         border 1px solid rgba(#7F8C8D .4)
-        border-radius 5px
+        border-radius 12px
+
+      img
+        width 128px
+        image-rendering pixelated
+
+      .change
+        margin-top 1em
+
 
 
   .full
-    width 100%
+    width 100% !important
 
   pre
     margin-top 3em

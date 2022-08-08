@@ -18,6 +18,8 @@ import { normalize_item } from '../core/items.js';
 
 const ARESRPG = inject(Folders.ARESRPG);
 const RESOURCES = inject(Folders.RESOURCES);
+const ARESRPG_HANDLE = inject(`${Folders.ARESRPG}:handle`);
+const RESOURCES_HANDLE = inject(`${Folders.RESOURCES}:handle`);
 const interacted = ref(false);
 
 const toast = useToast();
@@ -32,10 +34,14 @@ const Folder = {
   aresrpg: {
     key: Folders.ARESRPG,
     validate: ({ 'package.json': { name } }) => name === '@aresrpg/aresrpg',
-    handle: ({
-      data,
-      data: { 'items.json': items_json, 'entities.json': entities_json },
-    }) => {
+    handle: (
+      {
+        data,
+        data: { 'items.json': items_json, 'entities.json': entities_json },
+      },
+      handle
+    ) => {
+      ARESRPG_HANDLE.value = handle;
       const normalized_items = transform_values({
         object: items_json,
         transform: normalize_item,
@@ -46,10 +52,13 @@ const Folder = {
     },
   },
   resources: {
-    key: 'resources',
+    key: Folders.RESOURCES,
     validate: ({ assets: { minecraft = {} } = {} } = {}) =>
       'models' in minecraft,
-    handle: folder => Object.assign(RESOURCES, folder),
+    handle: (folder, handle) => {
+      Object.assign(RESOURCES, folder);
+      RESOURCES_HANDLE.value = handle;
+    },
   },
 };
 
@@ -75,7 +84,7 @@ const init_folder = async ({ validate, handle, key }) => {
   if (directory_handle) {
     await grant_permission(directory_handle);
     const folder = await parse_directory(directory_handle);
-    if (validate(folder)) handle(folder);
+    if (validate(folder)) handle(folder, directory_handle);
   }
 };
 

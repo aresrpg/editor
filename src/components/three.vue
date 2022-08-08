@@ -10,23 +10,18 @@ import { MinecraftModel } from '@oran9e/minecraft-model';
 import { ElementGeometry } from '@oran9e/three-mcmodel/dist/geometry';
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 
-const WIDTH = 600
-const HEIGHT = 500
+const WIDTH = 600;
+const HEIGHT = 500;
 
 const props = defineProps([
   'model_json',
   'model_texture_blob',
-  'model_mcmeta_json'
+  'model_mcmeta_json',
 ]);
 const canvas = ref(null);
 const animation_timer = ref(0);
 const scene = new Scene();
-const camera = new PerspectiveCamera(
-  20,
-  WIDTH / HEIGHT,
-  0.01,
-  1000
-);
+const camera = new PerspectiveCamera(20, WIDTH / HEIGHT, 0.01, 1000);
 
 let animation_frame = 0;
 const normalize_json_display = ({ display: { fixed }, ...item }) => ({

@@ -29,6 +29,7 @@ nav
 <script setup>
 import { useMessageBox } from '@qvant/qui-max';
 import { inject, computed } from 'vue';
+import { clear } from 'idb-keyval';
 
 import Editors from '../core/Editors';
 import Folders from '../core/Folders';
@@ -36,6 +37,9 @@ import Folders from '../core/Folders';
 import tween from './tween.vue';
 
 const message_box = useMessageBox();
+
+const ARESRPG = inject(Folders.ARESRPG);
+const RESOURCES = inject(Folders.RESOURCES);
 
 const props = defineProps(['editor']);
 const get_filename = () => {
@@ -51,9 +55,6 @@ const get_filename = () => {
 
 const raw_elements = inject(Folders.ARESRPG).data[get_filename()];
 const active_tab = inject('selected_editor');
-
-const items = inject(Folders.ARESRPG).data['items.json'];
-const entities = inject(Folders.ARESRPG).data['entities.json'];
 
 const Injected = {
   [Editors.ITEMS]: {
@@ -108,10 +109,10 @@ const on_reset = async () => {
       cancelButtonText: 'cancel',
     });
 
-    Object.keys(items).forEach(key => delete items[key]);
-    Object.keys(entities).forEach(key => delete entities[key]);
-    localStorage.removeItem(Editors.ITEMS);
-    localStorage.removeItem(Editors.ENTITIES);
+    Object.keys(ARESRPG).forEach(key => delete ARESRPG[key]);
+    Object.keys(RESOURCES).forEach(key => delete RESOURCES[key]);
+    localStorage.clear();
+    await clear();
   } catch (error) {
     console.error(error);
   }

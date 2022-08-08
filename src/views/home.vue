@@ -29,6 +29,9 @@ import stored_ref from '../core/stored_ref.js';
 const ARESRPG = reactive({});
 const RESOURCES = reactive({});
 
+const ARESRPG_HANDLE = ref();
+const RESOURCES_HANDLE = ref();
+
 const can_edit = ref(false);
 const selected_editor = stored_ref('selected_editor', Editors.ITEMS);
 const found_entries_count = ref(0);
@@ -61,6 +64,8 @@ const entity_select = stored_ref(`${Editors.ENTITIES}:select`);
 
 provide(Folders.ARESRPG, ARESRPG);
 provide(Folders.RESOURCES, RESOURCES);
+provide(`${Folders.ARESRPG}:handle`, ARESRPG_HANDLE);
+provide(`${Folders.RESOURCES}:handle`, RESOURCES_HANDLE);
 provide('entries_count', found_entries_count);
 provide('selected_editor', selected_editor);
 
