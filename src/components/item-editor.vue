@@ -59,9 +59,13 @@
         span Stats:
         .stat(v-for="stat in statistics" :key="stat")
           .name(:class="stat") {{ stat }}:
-          field(:numeric="true" :allowNegative="true" v-model="writable.stats[stat]")
+          field(:numeric="true" :allowNegative="true" v-model="writable.stats[stat][0]")
             template(#default="{ click }")
-              .value(@click="click") {{ readable.stats[stat] }}
+              .value(@click="click") {{ readable.stats[stat][0] ?? 0 }}
+          .to >
+          field(:numeric="true" :allowNegative="true" v-model="writable.stats[stat][1]")
+            template(#default="{ click }")
+              .value(@click="click") {{ readable.stats[stat][1] ?? 0 }}
       //- item description
       .desc.full
         span Description:
@@ -97,7 +101,7 @@
 </template>
 
 <script setup>
-import { computed, inject, watch, reactive, ref } from 'vue';
+import { computed, inject, watch, reactive, ref, onMounted } from 'vue';
 import { useToast } from 'vue-toastification';
 
 import minecraft_items from '../core/minecraft_items.json';
@@ -111,7 +115,7 @@ import options from './editable-select.vue';
 import textField from './editable-text.vue';
 import three from './three.vue';
 
-const props = defineProps(['id']);
+const props = defineProps(['id', 'listen_deletion']);
 const emits = defineEmits(['update']);
 const items = inject(Folders.ARESRPG).data['items.json'];
 
@@ -143,60 +147,6 @@ const file_extension = file_name => {
 };
 
 const all_files_uploaded = computed(() => uploaded_files.value.length === 2);
-
-// TODO save custom_model_data
-
-const on_confirm_texture = async () => {
-  if (all_files_uploaded.value) {
-    const find_file = type =>
-      uploaded_files.value.find(({ name }) => file_extension(name) === type)
-        ?.sourceFile;
-    const model = find_file('json');
-    const texture = find_file('png');
-    const mcmeta = find_file('mcmeta');
-    if (model && texture) {
-      const { value: directory_handle } = RESOURCES_HANDLE;
-      const model_name = `${props.id}.json`;
-      const texture_name = `${props.id}.png`;
-      const mcmeta_name = `${props.id}.mcmeta`;
-
-      RESOURCES.assets.minecraft.models.custom[model_name] = JSON.parse(
-        await model.text()
-      );
-      RESOURCES.assets.minecraft.textures.custom[texture_name] = texture;
-
-      if (mcmeta) {
-        RESOURCES.assets.minecraft.textures.custom[mcmeta_name] = JSON.parse(
-          await mcmeta.text()
-        );
-        await save_file({
-          directory_handle,
-          file_name: mcmeta_name,
-          file_content: mcmeta,
-          file_path: ['assets', 'minecraft', 'textures', 'custom'],
-        });
-      }
-
-      await save_file({
-        directory_handle,
-        file_name: model_name,
-        file_content: model,
-        file_path: ['assets', 'minecraft', 'models', 'custom'],
-      });
-
-      await save_file({
-        directory_handle,
-        file_name: texture_name,
-        file_content: texture,
-        file_path: ['assets', 'minecraft', 'textures', 'custom'],
-      });
-    } else
-      toast('Are you sure you uploaded a model.json and a texture.png ?', {
-        type: 'error',
-      });
-  }
-  show_texture_upload.value = false;
-};
 
 const create_url = blob => URL.createObjectURL(blob);
 
@@ -255,20 +205,137 @@ const writable = reactive({
   critical: [1, 50],
   damage: [1, 1],
   stats: {
-    vitality: 0,
-    mind: 0,
-    strength: 0,
-    intelligence: 0,
-    chance: 0,
-    agility: 0,
+    vitality: [],
+    mind: [],
+    strength: [],
+    intelligence: [],
+    chance: [],
+    agility: [],
   },
   description: '',
   custom_model_data: 0,
 });
 const readable = computed(() => normalize_item(writable));
 
-watch(props, ({ id }) => Object.assign(writable, items[id]), { deep: true });
+watch(props, ({ id }) => Object.assign(writable, items[id]), {
+  deep: true,
+  immediate: true,
+});
 watch(writable, value => emits('update', normalize_item(value)));
+
+const save_custom_model_data = async () => {
+  const file_name = `${readable.item}.json`;
+  const source_item_json = {
+    overrides: [],
+    ...(RESOURCES.assets.minecraft.models.item[file_name] ?? {
+      parent: 'minecraft:item/generated',
+      textures: {
+        layer0: `minecraft:item/${readable.item}`,
+      },
+    }),
+  };
+
+  const unused_index = source_item_json.overrides.reduce(
+    (last, { predicate: { custom_model_data: current_data } }) =>
+      last + current_data + 1,
+    1
+  );
+
+  source_item_json.overrides.push({
+    predicate: { custom_model_data: unused_index },
+    model: `custom/${props.id}`,
+  });
+
+  RESOURCES.assets.minecraft.models.item[file_name] = source_item_json;
+
+  await save_file({
+    directory_handle: RESOURCES_HANDLE.value,
+    file_name,
+    file_content: JSON.stringify(source_item_json),
+    file_path: ['assets', 'minecraft', 'models', 'item'],
+  });
+};
+
+const delete_custom_model_data = async ({ file_name }) => {
+  const source_item_json = RESOURCES.assets.minecraft.models.item[file_name];
+  if (!source_item_json.overrides?.length) return;
+  source_item_json.overrides = source_item_json.overrides.filter(
+    ({ predicate }) => predicate.custom_model_data !== custom_model_data
+  );
+
+  await save_file({
+    directory_handle: RESOURCES_HANDLE.value,
+    file_name,
+    file_content: JSON.stringify(source_item_json),
+    file_path: ['assets', 'minecraft', 'models', 'item'],
+  });
+};
+
+const delete_element = id => {
+  const model_name = `${id}.json`;
+  const texture_name = `${id}.png`;
+  const mcmeta_name = `${id}.mcmeta`;
+
+  delete RESOURCES.assets.minecraft.models.custom[model_name];
+  delete RESOURCES.assets.minecraft.textures.custom[texture_name];
+  delete RESOURCES.assets.minecraft.textures.custom[mcmeta_name];
+};
+
+defineExpose({ delete_element });
+
+const on_confirm_texture = async () => {
+  if (all_files_uploaded.value) {
+    const find_file = type =>
+      uploaded_files.value.find(({ name }) => file_extension(name) === type)
+        ?.sourceFile;
+    const model = find_file('json');
+    const texture = find_file('png');
+    const mcmeta = find_file('mcmeta');
+    if (model && texture) {
+      const { value: directory_handle } = RESOURCES_HANDLE;
+      const model_name = `${props.id}.json`;
+      const texture_name = `${props.id}.png`;
+      const mcmeta_name = `${props.id}.mcmeta`;
+
+      RESOURCES.assets.minecraft.models.custom[model_name] = JSON.parse(
+        await model.text()
+      );
+      RESOURCES.assets.minecraft.textures.custom[texture_name] = texture;
+
+      if (mcmeta) {
+        RESOURCES.assets.minecraft.textures.custom[mcmeta_name] = JSON.parse(
+          await mcmeta.text()
+        );
+        await save_file({
+          directory_handle,
+          file_name: mcmeta_name,
+          file_content: mcmeta,
+          file_path: ['assets', 'minecraft', 'textures', 'custom'],
+        });
+      }
+
+      await save_file({
+        directory_handle,
+        file_name: model_name,
+        file_content: model,
+        file_path: ['assets', 'minecraft', 'models', 'custom'],
+      });
+
+      await save_file({
+        directory_handle,
+        file_name: texture_name,
+        file_content: texture,
+        file_path: ['assets', 'minecraft', 'textures', 'custom'],
+      });
+
+      await save_custom_model_data();
+    } else
+      toast('Are you sure you uploaded a model.json and a texture.png ?', {
+        type: 'error',
+      });
+  }
+  show_texture_upload.value = false;
+};
 
 const show_json = inject(`${Editors.ITEMS}:json`);
 </script>
@@ -330,6 +397,11 @@ const show_json = inject(`${Editors.ITEMS}:json`);
         .stat
           margin-left 1em
           display flex
+          .to
+            padding 0 1em
+            text-transform uppercase
+            font-size .7em
+            font-weight 900
           .name
             text-transform uppercase
             font-size .7em

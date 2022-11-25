@@ -21,7 +21,7 @@ nav
   )
   q-tabs.tabs(v-model="active_tab")
     q-tab-pane(:name="Editors.ITEMS" title="Items")
-    q-tab-pane(:name="Editors.ENTITIES" title="Entities")
+    q-tab-pane(:name="Editors.ENTITIES" title="Entities" disabled)
   q-button.save(@click="save" theme="secondary" type="icon" icon="q-icon-save")
   q-button.clear(@click="on_reset" theme="secondary" type="icon" icon="q-icon-close")
 </template>

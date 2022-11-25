@@ -2,9 +2,10 @@
 .main__container
   .editor(v-if="can_edit")
     editor-nav(:editor="selected_editor")
-    editor(:editor="selected_editor")
+    editor(:editor="selected_editor" @deletion="id => current_editor_instance.delete_element(id)")
       template(#default="{ selected }")
         component(
+          ref="current_editor_instance"
           :is="Editor[selected_editor].editor"
           v-if="Editor[selected_editor].content.value[selected]"
           :id="selected"
@@ -14,7 +15,7 @@
 </template>
 
 <script setup>
-import { provide, ref, watchEffect, reactive } from 'vue';
+import { provide, ref, watchEffect, reactive, onMounted } from 'vue';
 import { computed } from '@vue/reactivity';
 
 import start from '../components/start.vue';
@@ -35,6 +36,8 @@ const RESOURCES_HANDLE = ref();
 const can_edit = ref(false);
 const selected_editor = stored_ref('selected_editor', Editors.ITEMS);
 const found_entries_count = ref(0);
+// used to call functions on the component
+const current_editor_instance = ref();
 
 const Editor = {
   [Editors.ITEMS]: {

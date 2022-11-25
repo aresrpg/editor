@@ -50,6 +50,8 @@ const map_minecraft_item = type => {
   }
 };
 
+const to_range = value => (Array.isArray(value) ? value : []);
+
 export const normalize_item = ({
   name: unsafe_name,
   level: unsafe_level,
@@ -60,12 +62,12 @@ export const normalize_item = ({
   critical: unsafe_critical,
   damage: unsafe_damage,
   stats: {
-    vitality = 0,
-    mind = 0,
-    strength = 0,
-    intelligence = 0,
-    chance = 0,
-    agility = 0,
+    vitality: unsafe_vitality = [],
+    mind: unsafe_mind = [],
+    strength: unsafe_strength = [],
+    intelligence: unsafe_intelligence = [],
+    chance: unsafe_chance = [],
+    agility: unsafe_agility = [],
   } = {},
   description: unsafe_description = '',
 }) => {
@@ -73,13 +75,14 @@ export const normalize_item = ({
   const level = unsafe_level || 1;
   const item = map_minecraft_item(type);
   const enchanted = !!unsafe_enchanted;
+
   const stats = {
-    vitality,
-    mind,
-    strength,
-    intelligence,
-    chance,
-    agility,
+    vitality: to_range(unsafe_vitality),
+    mind: to_range(unsafe_mind),
+    strength: to_range(unsafe_strength),
+    intelligence: to_range(unsafe_intelligence),
+    chance: to_range(unsafe_chance),
+    agility: to_range(unsafe_agility),
   };
 
   const critical = Array.isArray(unsafe_critical)

@@ -9,17 +9,26 @@
           :key="element._id"
         )
         .key {{ element.id }}
+        q-button.del(
+          theme="link"
+          type="icon"
+          icon="q-icon-close"
+          @click.stop="() => on_delete_element(element)"
+        )
     slot.slot(v-if="selected_element" :selected="selected_element")
 </template>
 
 <script setup>
 import { inject, computed } from 'vue';
+import { useMessageBox } from '@qvant/qui-max';
 
 import Editors from '../core/Editors';
 import Folders from '../core/Folders';
 import stored_ref from '../core/stored_ref';
 
 const props = defineProps(['editor']);
+const emits = defineEmits(['deletion']);
+const message_box = useMessageBox();
 
 const Injected = {
   [Editors.ITEMS]: {
@@ -153,6 +162,19 @@ const elements = computed(() => {
   found_entries_count.value = result.length;
   return result;
 });
+
+const on_delete_element = async ({ _id }) => {
+  try {
+    await message_box({
+      title: `Delete element ?`,
+      submessage: _id,
+      confirmButtonText: 'delete',
+      cancelButtonText: 'cancel',
+    });
+    emits('deletion', _id);
+    delete raw_elements.value[_id];
+  } catch {}
+};
 </script>
 
 <style lang="stylus" scoped>
@@ -183,6 +205,18 @@ const elements = computed(() => {
         cursor pointer
         box-shadow 6px 6px 12px #dadadd, -6px -6px 12px #ffffff
         transition all 200ms ease-in-out
+        display flex
+        flex-flow row nowrap
+        height 36px
+        align-items center
+        .key
+          margin-right auto
+        .del
+          color #7F8C8D
+          opacity .5
+          &:hover
+            color crimson
+            opacity 1
         &.selected
           position relative
           background var(--gradient-primary)
