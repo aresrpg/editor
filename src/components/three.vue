@@ -5,9 +5,9 @@ canvas#webgl(ref="canvas")
 <script setup>
 import { WebGLRenderer, Scene, PerspectiveCamera } from 'three';
 import OrbitControls from 'three-orbitcontrols';
-import { MinecraftTextureLoader, ElementMesh } from '@oran9e/three-mcmodel';
+import { MinecraftTextureLoader, ElementMesh } from '@sceat/three-mcmodel';
 import { MinecraftModel } from '@oran9e/minecraft-model';
-import { ElementGeometry } from '@oran9e/three-mcmodel/dist/geometry';
+import { ElementGeometry } from '@sceat/three-mcmodel/dist/geometry';
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 
 const WIDTH = 600;

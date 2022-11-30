@@ -53,7 +53,7 @@ const get_filename = () => {
   }
 };
 
-const raw_elements = inject(Folders.ARESRPG).data[get_filename()];
+const raw_elements = inject(Folders.ARESRPG)[get_filename()];
 const active_tab = inject('selected_editor');
 
 const Injected = {

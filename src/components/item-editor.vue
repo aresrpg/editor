@@ -94,7 +94,8 @@
       )
       img.texture(v-else-if="item_texture || default_texture" :src="create_url(item_texture ?? default_texture)")
       .placeholder(v-else) The default texture is not present in the resources pack
-      q-button.change(size="small" theme="secondary" @click="show_texture_upload = true") set texture
+      q-button.change(size="small" theme="primary" @click="show_texture_upload = true") {{ item_texture ? 'replace texture' : 'set texture'}}
+      q-button.remove(size="small" theme="secondary" @click="delete_texture" v-if="item_texture") delete texture
 
   pre(v-highlightjs v-if="show_json")
     code.json {{ readable }}
@@ -117,7 +118,7 @@ import three from './three.vue';
 
 const props = defineProps(['id', 'listen_deletion']);
 const emits = defineEmits(['update']);
-const items = inject(Folders.ARESRPG).data['items.json'];
+const items = inject(Folders.ARESRPG)['items.json'];
 
 const RESOURCES = inject(Folders.RESOURCES);
 const ARESRPG_HANDLE = inject(`${Folders.ARESRPG}:handle`);
@@ -146,7 +147,7 @@ const file_extension = file_name => {
   if (parts.length > 1) return parts.pop();
 };
 
-const all_files_uploaded = computed(() => uploaded_files.value.length === 2);
+const all_files_uploaded = computed(() => uploaded_files.value.length);
 
 const create_url = blob => URL.createObjectURL(blob);
 
@@ -281,7 +282,11 @@ const delete_element = id => {
   delete RESOURCES.assets.minecraft.textures.custom[mcmeta_name];
 };
 
-defineExpose({ delete_element });
+const delete_texture = () => delete_element(props.id);
+
+const is_uploading = () => !!show_texture_upload.value;
+
+defineExpose({ delete_element, is_uploading });
 
 const on_confirm_texture = async () => {
   if (all_files_uploaded.value) {
@@ -291,49 +296,56 @@ const on_confirm_texture = async () => {
     const model = find_file('json');
     const texture = find_file('png');
     const mcmeta = find_file('mcmeta');
-    if (model && texture) {
-      const { value: directory_handle } = RESOURCES_HANDLE;
-      const model_name = `${props.id}.json`;
-      const texture_name = `${props.id}.png`;
-      const mcmeta_name = `${props.id}.mcmeta`;
-
-      RESOURCES.assets.minecraft.models.custom[model_name] = JSON.parse(
-        await model.text()
-      );
+    const { value: directory_handle } = RESOURCES_HANDLE;
+    const texture_name = `${props.id}.png`;
+    const model_name = `${props.id}.json`;
+    const mcmeta_name = `${props.id}.mcmeta`;
+    const apply_and_save_texture = texture => {
       RESOURCES.assets.minecraft.textures.custom[texture_name] = texture;
-
-      if (mcmeta) {
-        RESOURCES.assets.minecraft.textures.custom[mcmeta_name] = JSON.parse(
-          await mcmeta.text()
-        );
-        await save_file({
-          directory_handle,
-          file_name: mcmeta_name,
-          file_content: mcmeta,
-          file_path: ['assets', 'minecraft', 'textures', 'custom'],
-        });
-      }
-
-      await save_file({
-        directory_handle,
-        file_name: model_name,
-        file_content: model,
-        file_path: ['assets', 'minecraft', 'models', 'custom'],
-      });
-
-      await save_file({
+      return save_file({
         directory_handle,
         file_name: texture_name,
         file_content: texture,
         file_path: ['assets', 'minecraft', 'textures', 'custom'],
       });
+    };
+    const apply_and_save_model = async model => {
+      RESOURCES.assets.minecraft.models.custom[model_name] = JSON.parse(
+        await model.text()
+      );
+      return save_file({
+        directory_handle,
+        file_name: model_name,
+        file_content: model,
+        file_path: ['assets', 'minecraft', 'models', 'custom'],
+      });
+    };
+    const apply_and_save_mcmeta = async mcmeta => {
+      RESOURCES.assets.minecraft.textures.custom[mcmeta_name] = JSON.parse(
+        await mcmeta.text()
+      );
+      return save_file({
+        directory_handle,
+        file_name: mcmeta_name,
+        file_content: mcmeta,
+        file_path: ['assets', 'minecraft', 'textures', 'custom'],
+      });
+    };
 
+    if (model && texture) {
+      await apply_and_save_texture(texture);
+      await apply_and_save_model(model);
+      if (mcmeta) await apply_and_save_mcmeta(mcmeta);
+      await save_custom_model_data();
+    } else if (texture) {
+      await apply_and_save_texture(texture);
       await save_custom_model_data();
     } else
-      toast('Are you sure you uploaded a model.json and a texture.png ?', {
+      toast('You must at least upload a png texture', {
         type: 'error',
       });
   }
+  uploaded_files.value = [];
   show_texture_upload.value = false;
 };
 
@@ -466,8 +478,8 @@ const show_json = inject(`${Editors.ITEMS}:json`);
         width 128px
         image-rendering pixelated
 
-      .change
-        margin-top 1em
+      .change, .remove
+        margin .5em 0
 
 
 

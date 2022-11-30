@@ -3,9 +3,9 @@
   .editor(v-if="can_edit")
     editor-nav(:editor="selected_editor")
     editor(:editor="selected_editor" @deletion="id => current_editor_instance.delete_element(id)")
-      template(#default="{ selected }")
+      template(#default="{ selected, set_ref }")
         component(
-          ref="current_editor_instance"
+          :ref="el => (set_ref(el), current_editor_instance = el)"
           :is="Editor[selected_editor].editor"
           v-if="Editor[selected_editor].content.value[selected]"
           :id="selected"
@@ -42,16 +42,16 @@ const current_editor_instance = ref();
 const Editor = {
   [Editors.ITEMS]: {
     editor: itemEditor,
-    content: computed(() => ARESRPG.data?.['items.json']),
+    content: computed(() => ARESRPG?.['items.json']),
     update_content: (key, value) => {
-      ARESRPG.data['items.json'][key] = value;
+      ARESRPG['items.json'][key] = value;
     },
   },
   [Editors.ENTITIES]: {
     editor: entityEditor,
-    content: computed(() => ARESRPG.data?.['entities.json']),
+    content: computed(() => ARESRPG?.['entities.json']),
     update_content: (key, value) => {
-      ARESRPG.data['entities.json'][key] = value;
+      ARESRPG['entities.json'][key] = value;
     },
   },
 };

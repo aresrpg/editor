@@ -15,11 +15,11 @@
           icon="q-icon-close"
           @click.stop="() => on_delete_element(element)"
         )
-    slot.slot(v-if="selected_element" :selected="selected_element")
+    slot.slot(:set_ref="set_ref" v-if="selected_element" :selected="selected_element")
 </template>
 
 <script setup>
-import { inject, computed } from 'vue';
+import { inject, computed, ref } from 'vue';
 import { useMessageBox } from '@qvant/qui-max';
 
 import Editors from '../core/Editors';
@@ -29,19 +29,22 @@ import stored_ref from '../core/stored_ref';
 const props = defineProps(['editor']);
 const emits = defineEmits(['deletion']);
 const message_box = useMessageBox();
+// used to call functions on the component
+const current_editor_instance = ref();
+const set_ref = slot_ref => (current_editor_instance.value = slot_ref);
 
 const Injected = {
   [Editors.ITEMS]: {
     search: inject(`${Editors.ITEMS}:search`, ''),
     fancy_name: inject(`${Editors.ITEMS}:fancy_name`),
     select: inject(`${Editors.ITEMS}:select`),
-    raw_elements: inject(Folders.ARESRPG).data['items.json'],
+    raw_elements: inject(Folders.ARESRPG)['items.json'],
   },
   [Editors.ENTITIES]: {
     search: inject(`${Editors.ENTITIES}:search`, ''),
     fancy_name: inject(`${Editors.ENTITIES}:fancy_name`),
     select: inject(`${Editors.ENTITIES}:select`),
-    raw_elements: inject(Folders.ARESRPG).data['entities.json'],
+    raw_elements: inject(Folders.ARESRPG)['entities.json'],
   },
 };
 
@@ -73,8 +76,15 @@ const raw_elements = computed({
 const found_entries_count = inject('entries_count', 0);
 
 const selected_element = stored_ref(`${props.editor}:selected`);
-const select_element = id => {
-  if (selected_element.value === id) selected_element.value = null;
+const select_element = async id => {
+  if (current_editor_instance.value?.is_uploading()) {
+    await message_box({
+      title: `Not so fast!`,
+      submessage: 'You are currently uploading a texture',
+      // confirmButtonText: 'delete',
+      cancelButtonText: 'cancel',
+    });
+  } else if (selected_element.value === id) selected_element.value = null;
   else selected_element.value = id;
 };
 

@@ -49,24 +49,34 @@ export const grant_permission = async handle => {
   if (permission !== 'granted') await handle.requestPermission(PERMISSIONS);
 };
 
-export const save_file = async ({
-  directory_handle,
-  file_path,
-  file_name,
-  file_content,
-}) => {
-  await grant_permission(directory_handle);
-  const current_directory_handle = await iter(file_path)
-    .toAsyncIterator()
-    .reduce(
-      (handle, folder_name) =>
-        handle.getDirectoryHandle(folder_name, { create: true }),
-      directory_handle
+const with_file_handle =
+  then =>
+  async ({ directory_handle, file_path, file_name, file_content }) => {
+    await grant_permission(directory_handle);
+    const current_directory_handle = await iter(file_path)
+      .toAsyncIterator()
+      .reduce(
+        (handle, folder_name) =>
+          handle.getDirectoryHandle(folder_name, { create: true }),
+        directory_handle
+      );
+    const file_handle = await current_directory_handle.getFileHandle(
+      file_name,
+      {
+        create: true,
+      }
     );
-  const file_handle = await current_directory_handle.getFileHandle(file_name, {
-    create: true,
-  });
-  const writable = await file_handle.createWritable();
-  await writable.write(file_content);
-  await writable.close();
-};
+    return then({ file_handle, file_content });
+  };
+
+export const save_file = with_file_handle(
+  async ({ file_handle, file_content }) => {
+    const writable = await file_handle.createWritable();
+    await writable.write(file_content);
+    await writable.close();
+  }
+);
+
+// export const delete_file = with_file_handle(file_handle =>
+//   file_handle.remove()
+// );

@@ -11,8 +11,8 @@
     "format": "prettier . --write && eslint . --fix"
   },
   "dependencies": {
-    "@oran9e/three-mcmodel": "^1.3.2",
     "@qvant/qui-max": "^0.17.0",
+    "@sceat/three-mcmodel": "^0.1.0",
     "@tweenjs/tween.js": "^18.6.4",
     "click-outside-vue3": "^4.0.1",
     "idb-keyval": "^6.2.0",
