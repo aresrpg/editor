@@ -1,7 +1,7 @@
 <template lang="pug">
 nav
   q-input.search(rootClass="search" v-model="search" suffix-icon="q-icon-search")
-  q-button.add(type="icon" icon="q-icon-plus")
+  q-button.add(@click="emit('add')" type="icon" icon="q-icon-plus")
   .option.entries
     span entries
     tween(:number="found_entries_count")
@@ -22,7 +22,6 @@ nav
   q-tabs.tabs(v-model="active_tab")
     q-tab-pane(:name="Editors.ITEMS" title="Items")
     q-tab-pane(:name="Editors.ENTITIES" title="Entities" disabled)
-  q-button.save(@click="save" theme="secondary" type="icon" icon="q-icon-save")
   q-button.clear(@click="on_reset" theme="secondary" type="icon" icon="q-icon-close")
 </template>
 
@@ -55,6 +54,7 @@ const get_filename = () => {
 
 const raw_elements = inject(Folders.ARESRPG)[get_filename()];
 const active_tab = inject('selected_editor');
+const emit = defineEmits(['add']);
 
 const Injected = {
   [Editors.ITEMS]: {
@@ -98,14 +98,12 @@ const select = computed({
 
 const found_entries_count = inject('entries_count', 0);
 
-const save = () => {};
-
 const on_reset = async () => {
   try {
     await message_box({
-      title: 'Are you sure ?',
-      submessage: 'Make sure you saved your work before leaving',
-      confirmButtonText: 'Clear files',
+      title: 'Clear workspace',
+      submessage: `Don't worry, you won't loose your changes`,
+      confirmButtonText: 'confirm',
       cancelButtonText: 'cancel',
     });
 

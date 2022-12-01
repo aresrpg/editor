@@ -23,7 +23,7 @@ export const statistics = [
   'agility',
 ];
 
-const map_minecraft_item = type => {
+const map_minecraft_item = (type, unsafe_item) => {
   switch (type) {
     case 'helmet':
       return 'stone';
@@ -44,13 +44,19 @@ const map_minecraft_item = type => {
     case 'stick':
       return 'stick';
     case 'misc':
-      if (minecraft_items.includes(type)) return type;
+      if (minecraft_items.includes(unsafe_item)) return unsafe_item;
     default:
       return 'magma_cream';
   }
 };
 
-const to_range = value => (Array.isArray(value) ? value : []);
+const to_range = value => {
+  if (Array.isArray(value)) {
+    const [from = 0, to = 0] = value;
+    return [+from, +to];
+  }
+  return [];
+};
 
 export const normalize_item = ({
   name: unsafe_name,
@@ -73,7 +79,7 @@ export const normalize_item = ({
 }) => {
   const name = unsafe_name?.trim() ?? 'name missing';
   const level = unsafe_level || 1;
-  const item = map_minecraft_item(type);
+  const item = map_minecraft_item(type, unsafe_item);
   const enchanted = !!unsafe_enchanted;
 
   const stats = {

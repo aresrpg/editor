@@ -35,6 +35,7 @@ const updateSW = registerSW({
 
 vue_app.config.compilerOptions.isCustomElement = tag => {
   if (tag.startsWith('el-')) return true;
+  if (tag.startsWith('q-')) return true;
   if (tag.startsWith('upload-')) return true;
   return false;
 };

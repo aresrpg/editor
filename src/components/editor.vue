@@ -83,7 +83,7 @@ const select_element = async id => {
       submessage: 'You are currently uploading a texture',
       // confirmButtonText: 'delete',
       cancelButtonText: 'cancel',
-    });
+    }).catch(() => {});
   } else if (selected_element.value === id) selected_element.value = null;
   else selected_element.value = id;
 };

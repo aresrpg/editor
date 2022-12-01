@@ -4,7 +4,7 @@
   .item__middle
     .left
       .name.full
-        field(v-model="readable.name")
+        field(v-model="writable.name")
           template(#default="{ click }")
             .title(:class="{ enchant: readable.enchanted }" @click="click") {{ readable.name }}
         //- level
@@ -102,8 +102,9 @@
 </template>
 
 <script setup>
-import { computed, inject, watch, reactive, ref, onMounted } from 'vue';
+import { computed, inject, watch, reactive, ref, provide } from 'vue';
 import { useToast } from 'vue-toastification';
+import { useMessageBox } from '@qvant/qui-max';
 
 import minecraft_items from '../core/minecraft_items.json';
 import Editors from '../core/Editors.js';
@@ -119,6 +120,7 @@ import three from './three.vue';
 const props = defineProps(['id', 'listen_deletion']);
 const emits = defineEmits(['update']);
 const items = inject(Folders.ARESRPG)['items.json'];
+const message_box = useMessageBox();
 
 const RESOURCES = inject(Folders.RESOURCES);
 const ARESRPG_HANDLE = inject(`${Folders.ARESRPG}:handle`);
@@ -272,7 +274,9 @@ const delete_custom_model_data = async ({ file_name }) => {
   });
 };
 
-const delete_element = id => {
+const delete_texture = () => {
+  // CODE DUPLICATION WITH HOME.VUE#delete_element
+  const { id } = props;
   const model_name = `${id}.json`;
   const texture_name = `${id}.png`;
   const mcmeta_name = `${id}.mcmeta`;
@@ -281,12 +285,9 @@ const delete_element = id => {
   delete RESOURCES.assets.minecraft.textures.custom[texture_name];
   delete RESOURCES.assets.minecraft.textures.custom[mcmeta_name];
 };
-
-const delete_texture = () => delete_element(props.id);
-
 const is_uploading = () => !!show_texture_upload.value;
 
-defineExpose({ delete_element, is_uploading });
+defineExpose({ is_uploading });
 
 const on_confirm_texture = async () => {
   if (all_files_uploaded.value) {

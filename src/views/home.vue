@@ -1,11 +1,11 @@
 <template lang="pug">
 .main__container
   .editor(v-if="can_edit")
-    editor-nav(:editor="selected_editor")
-    editor(:editor="selected_editor" @deletion="id => current_editor_instance.delete_element(id)")
+    editor-nav(:editor="selected_editor" @add="() => Editor[selected_editor].add_element()")
+    editor(:editor="selected_editor" @deletion="id => Editor[selected_editor].delete_element(id)")
       template(#default="{ selected, set_ref }")
         component(
-          :ref="el => (set_ref(el), current_editor_instance = el)"
+          :ref="el => set_ref(el)"
           :is="Editor[selected_editor].editor"
           v-if="Editor[selected_editor].content.value[selected]"
           :id="selected"
@@ -17,7 +17,9 @@
 <script setup>
 import { provide, ref, watchEffect, reactive, onMounted } from 'vue';
 import { computed } from '@vue/reactivity';
+import { useMessageBox } from '@qvant/qui-max';
 
+import { save_file } from '../core/directories';
 import start from '../components/start.vue';
 import Editors from '../core/Editors.js';
 import Folders from '../core/Folders';
@@ -26,6 +28,7 @@ import itemEditor from '../components/item-editor.vue';
 import entityEditor from '../components/entity-editor.vue';
 import editorNav from '../components/nav.vue';
 import stored_ref from '../core/stored_ref.js';
+import message_input from '../components/message-box-input.vue';
 
 const ARESRPG = reactive({});
 const RESOURCES = reactive({});
@@ -36,15 +39,53 @@ const RESOURCES_HANDLE = ref();
 const can_edit = ref(false);
 const selected_editor = stored_ref('selected_editor', Editors.ITEMS);
 const found_entries_count = ref(0);
-// used to call functions on the component
-const current_editor_instance = ref();
+const message_box = useMessageBox();
 
 const Editor = {
   [Editors.ITEMS]: {
     editor: itemEditor,
     content: computed(() => ARESRPG?.['items.json']),
-    update_content: (key, value) => {
+    update_content: async (key, value) => {
       ARESRPG['items.json'][key] = value;
+      await save_file({
+        directory_handle: ARESRPG_HANDLE.value,
+        file_name: 'items.json',
+        file_content: JSON.stringify(ARESRPG['items.json'], null, 2),
+        file_path: [],
+      });
+    },
+    delete_element: id => {
+      const model_name = `${id}.json`;
+      const texture_name = `${id}.png`;
+      const mcmeta_name = `${id}.mcmeta`;
+
+      delete RESOURCES.assets.minecraft.models.custom[model_name];
+      delete RESOURCES.assets.minecraft.textures.custom[texture_name];
+      delete RESOURCES.assets.minecraft.textures.custom[mcmeta_name];
+    },
+    add_element: async () => {
+      try {
+        const { payload } = await message_box(message_input);
+        ARESRPG['items.json'][payload] = {
+          name: 'name missing',
+          level: 1,
+          type: 'misc',
+          item: 'stone',
+          enchanted: false,
+          critical: [1, 50],
+          damage: [1, 1],
+          stats: {
+            vitality: [],
+            mind: [],
+            strength: [],
+            intelligence: [],
+            chance: [],
+            agility: [],
+          },
+          description: '',
+          custom_model_data: 0,
+        };
+      } catch {}
     },
   },
   [Editors.ENTITIES]: {
