@@ -19,19 +19,19 @@
 </template>
 
 <script setup>
-import { inject, computed, ref } from 'vue';
-import { useMessageBox } from '@qvant/qui-max';
+import { inject, computed, ref } from 'vue'
+import { useMessageBox } from '@qvant/qui-max'
 
-import Editors from '../core/Editors';
-import Folders from '../core/Folders';
-import stored_ref from '../core/stored_ref';
+import Editors from '../core/Editors'
+import Folders from '../core/Folders'
+import stored_ref from '../core/stored_ref'
 
-const props = defineProps(['editor']);
-const emits = defineEmits(['deletion']);
-const message_box = useMessageBox();
+const props = defineProps(['editor'])
+const emits = defineEmits(['deletion'])
+const message_box = useMessageBox()
 // used to call functions on the component
-const current_editor_instance = ref();
-const set_ref = slot_ref => (current_editor_instance.value = slot_ref);
+const current_editor_instance = ref()
+const set_ref = slot_ref => (current_editor_instance.value = slot_ref)
 
 const Injected = {
   [Editors.ITEMS]: {
@@ -46,36 +46,36 @@ const Injected = {
     select: inject(`${Editors.ENTITIES}:select`),
     raw_elements: inject(Folders.ARESRPG)['entities.json'],
   },
-};
+}
 
 const search = computed({
   get: () => Injected[props.editor].search.value,
   set: value => {
-    Injected[props.editor].search.value = value;
+    Injected[props.editor].search.value = value
   },
-});
+})
 const fancy_name = computed({
   get: () => Injected[props.editor].fancy_name.value,
   set: value => {
-    Injected[props.editor].fancy_name.value = value;
+    Injected[props.editor].fancy_name.value = value
   },
-});
+})
 const select = computed({
   get: () => Injected[props.editor].select.value,
   set: value => {
-    Injected[props.editor].select.value = value;
+    Injected[props.editor].select.value = value
   },
-});
+})
 const raw_elements = computed({
   get: () => Injected[props.editor].raw_elements,
   set: value => {
-    Object.assign(Injected[props.editor].raw_elements, value);
+    Object.assign(Injected[props.editor].raw_elements, value)
   },
-});
+})
 
-const found_entries_count = inject('entries_count', 0);
+const found_entries_count = inject('entries_count', 0)
 
-const selected_element = stored_ref(`${props.editor}:selected`);
+const selected_element = stored_ref(`${props.editor}:selected`)
 const select_element = async id => {
   if (current_editor_instance.value?.is_uploading()) {
     await message_box({
@@ -83,13 +83,13 @@ const select_element = async id => {
       submessage: 'You are currently uploading a texture',
       // confirmButtonText: 'delete',
       cancelButtonText: 'cancel',
-    }).catch(() => {});
-  } else if (selected_element.value === id) selected_element.value = null;
-  else selected_element.value = id;
-};
+    }).catch(() => {})
+  } else if (selected_element.value === id) selected_element.value = null
+  else selected_element.value = id
+}
 
 const contains = (string = '') =>
-  string.toLowerCase().includes(search.value.toLowerCase());
+  string.toLowerCase().includes(search.value.toLowerCase())
 
 const Extractors = {
   [Editors.ITEMS]: {
@@ -106,72 +106,72 @@ const Extractors = {
     xp: ({ xp }) => xp,
     level: ({ level: { min, max } }) => min + max / 2,
   },
-};
+}
 
 const search_filter = ({ id, ...rest }) => {
-  const name = Extractors[props.editor].name(rest);
-  if (search.value) return contains(name) || contains(id);
-  return true;
-};
+  const name = Extractors[props.editor].name(rest)
+  if (search.value) return contains(name) || contains(id)
+  return true
+}
 
 const properties_filter = object => {
-  if (!select.value) return true;
+  if (!select.value) return true
   return Array.from(
     Object.values(select.value)
       .map(value => JSON.parse(value))
       .reduce((types, { type, rule }) => {
-        if (!types.has(type)) types.set(type, new Set());
-        types.get(type).add(rule);
-        return types;
+        if (!types.has(type)) types.set(type, new Set())
+        types.get(type).add(rule)
+        return types
       }, new Map())
       .entries()
   )
     .map(([type, types]) => [type, Array.from(types.values())])
     .every(([type, types]) =>
       types.find(rule => {
-        const property = Extractors[props.editor][type](object);
+        const property = Extractors[props.editor][type](object)
         switch (type) {
           case 'level': {
-            const [min, max] = rule.split(':');
-            return property > +min && property <= +max;
+            const [min, max] = rule.split(':')
+            return property > +min && property <= +max
           }
           case 'enchanted':
-            return !!property;
+            return !!property
           case 'description':
-            if (rule === 'no_desc') return !property;
-            return property && property.trim();
+            if (rule === 'no_desc') return !property
+            return property && property.trim()
           default:
-            return property === rule;
+            return property === rule
         }
       })
-    );
-};
+    )
+}
 
 const Options = {
   [Editors.ITEMS]: {
     insert_key: ([id, value]) => {
-      const final_id = fancy_name.value ? value.name : id;
-      return { id: final_id, _id: id, ...value };
+      const final_id = fancy_name.value ? value.name : id
+      return { id: final_id, _id: id, ...value }
     },
   },
   [Editors.ENTITIES]: {
     insert_key: ([id, value], index) => {
-      const final_id = fancy_name.value ? value.display_name : id;
-      return { id: final_id, ...value };
+      const final_id = fancy_name.value ? value.display_name : id
+      return { id: final_id, ...value }
     },
   },
-};
+}
 
 const elements = computed(() => {
-  const { insert_key } = Options[props.editor];
+  const { insert_key } = Options[props.editor]
   const result = Object.entries(raw_elements.value)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(insert_key)
     .filter(search_filter)
-    .filter(properties_filter);
-  found_entries_count.value = result.length;
-  return result;
-});
+    .filter(properties_filter)
+  found_entries_count.value = result.length
+  return result
+})
 
 const on_delete_element = async ({ _id }) => {
   try {
@@ -180,11 +180,11 @@ const on_delete_element = async ({ _id }) => {
       submessage: _id,
       confirmButtonText: 'delete',
       cancelButtonText: 'cancel',
-    });
-    emits('deletion', _id);
-    delete raw_elements.value[_id];
+    })
+    emits('deletion', _id)
+    delete raw_elements.value[_id]
   } catch {}
-};
+}
 </script>
 
 <style lang="stylus" scoped>

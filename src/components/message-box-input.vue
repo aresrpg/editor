@@ -1,29 +1,29 @@
 <script setup>
-import { computed, inject, onMounted, ref } from 'vue';
-import { QMessageBoxContent } from '@qvant/qui-max';
+import { computed, inject, onMounted, ref } from 'vue'
+import { QMessageBoxContent } from '@qvant/qui-max'
 
-import Folders from '../core/Folders';
+import Folders from '../core/Folders'
 
-const message = inject('qMessageBoxContainer');
-const id = ref('');
-const items = inject(Folders.ARESRPG)['items.json'];
+const message = inject('qMessageBoxContainer')
+const id = ref('')
+const items = inject(Folders.ARESRPG)['items.json']
 const name_list = computed(() =>
   Object.keys(items)
     .filter(name => name.startsWith(id.value))
     .sort()
     .slice(0, 5)
-);
+)
 const on_confirm = () => {
   message.emitDoneEvent({
     action: 'confirm',
     payload: id.value,
-  });
-};
+  })
+}
 const on_cancel = () => {
   message.emitDoneEvent({
     action: 'cancel',
-  });
-};
+  })
+}
 </script>
 
 <template lang="pug">

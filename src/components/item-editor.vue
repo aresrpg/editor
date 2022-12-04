@@ -18,13 +18,6 @@
           template(#default="{ click }")
             .inner(@click="click") {{ readable.type }}
 
-      //- minecraft item
-      .item(v-if="readable.type === 'misc'")
-        span Item:
-        options(:options="minecraft_items" v-model="writable.item")
-          template(#default="{ click }")
-            .inner(@click="click") {{ readable.item }}
-
       //- enchanted
       .enchanted
         span Enchanted:
@@ -74,7 +67,7 @@
             .value(@click="click") {{ readable.description || 'no description' }}
 
     .right(v-if="show_texture_upload")
-      q-upload(
+      q-upload.upload(
         :value="uploaded_files"
         :accept="['application/JSON', 'image/png']"
         :multiple="true"
@@ -92,66 +85,77 @@
         :model_texture_blob="item_texture"
         :model_mcmeta_json="item_mcmeta"
       )
-      img.texture(v-else-if="item_texture || default_texture" :src="create_url(item_texture ?? default_texture)")
-      .placeholder(v-else) The default texture is not present in the resources pack
+      .img_container(v-else)
+        img.texture(:src="create_url(item_texture ?? default_texture)")
       q-button.change(size="small" theme="primary" @click="show_texture_upload = true") {{ item_texture ? 'replace texture' : 'set texture'}}
-      q-button.remove(size="small" theme="secondary" @click="delete_texture" v-if="item_texture") delete texture
+      q-button.remove(size="small" theme="secondary" @click="on_delete_texture" v-if="item_texture") delete texture
 
   pre(v-highlightjs v-if="show_json")
     code.json {{ readable }}
 </template>
 
 <script setup>
-import { computed, inject, watch, reactive, ref, provide } from 'vue';
-import { useToast } from 'vue-toastification';
-import { useMessageBox } from '@qvant/qui-max';
+import { computed, inject, watch, reactive, ref, provide } from 'vue'
+import { useToast } from 'vue-toastification'
+import { useMessageBox } from '@qvant/qui-max'
 
-import minecraft_items from '../core/minecraft_items.json';
-import Editors from '../core/Editors.js';
-import { normalize_item, types, statistics } from '../core/items.js';
-import Folders from '../core/Folders';
-import { save_file } from '../core/directories.js';
+import Editors from '../core/Editors.js'
+import {
+  normalize_item,
+  types,
+  statistics,
+  delete_texture,
+} from '../core/items.js'
+import Folders from '../core/Folders'
+import { save_file } from '../core/directories.js'
 
-import field from './editable-field.vue';
-import options from './editable-select.vue';
-import textField from './editable-text.vue';
-import three from './three.vue';
+import field from './editable-field.vue'
+import options from './editable-select.vue'
+import textField from './editable-text.vue'
+import three from './three.vue'
 
-const props = defineProps(['id', 'listen_deletion']);
-const emits = defineEmits(['update']);
-const items = inject(Folders.ARESRPG)['items.json'];
-const message_box = useMessageBox();
+const props = defineProps(['id', 'listen_deletion'])
+const emits = defineEmits(['update'])
+const items = inject(Folders.ARESRPG)['items.json']
+const message_box = useMessageBox()
 
-const RESOURCES = inject(Folders.RESOURCES);
-const ARESRPG_HANDLE = inject(`${Folders.ARESRPG}:handle`);
-const RESOURCES_HANDLE = inject(`${Folders.RESOURCES}:handle`);
+const RESOURCES = inject(Folders.RESOURCES)
+const ARESRPG_HANDLE = inject(`${Folders.ARESRPG}:handle`)
+const RESOURCES_HANDLE = inject(`${Folders.RESOURCES}:handle`)
 
-const show_texture_upload = ref(false);
-const uploaded_files = ref([]);
+const show_texture_upload = ref(false)
+const uploaded_files = ref([])
 
-const toast = useToast();
+const toast = useToast()
 const on_clear_model = file_id => {
-  uploaded_files.value = uploaded_files.value.filter(
-    ({ id }) => id !== file_id
-  );
-};
+  uploaded_files.value = uploaded_files.value.filter(({ id }) => id !== file_id)
+}
 
 const on_upload_model = async (sourceFile, file_id) => {
   uploaded_files.value.push({
     id: file_id,
     sourceFile,
     name: sourceFile.name,
-  });
-};
+  })
+}
 
 const file_extension = file_name => {
-  const parts = file_name.split('.');
-  if (parts.length > 1) return parts.pop();
-};
+  const parts = file_name.split('.')
+  if (parts.length > 1) return parts.pop()
+}
 
-const all_files_uploaded = computed(() => uploaded_files.value.length);
+const all_files_uploaded = computed(() => uploaded_files.value.length)
 
-const create_url = blob => URL.createObjectURL(blob);
+const create_url = blob => URL.createObjectURL(blob)
+
+const on_delete_texture = () =>
+  delete_texture({
+    RESOURCES,
+    RESOURCES_HANDLE: RESOURCES_HANDLE.value,
+    id: props.id,
+    custom_model_data: readable.value.custom_model_data,
+    item: readable.value.item,
+  })
 
 const item_model = computed(() => {
   const {
@@ -160,9 +164,9 @@ const item_model = computed(() => {
         models: { custom: { [`${props.id}.json`]: model } = {} },
       },
     },
-  } = RESOURCES;
-  return model;
-});
+  } = RESOURCES
+  return model
+})
 const item_texture = computed(() => {
   const {
     assets: {
@@ -170,9 +174,9 @@ const item_texture = computed(() => {
         textures: { custom: { [`${props.id}.png`]: texture } = {} },
       },
     },
-  } = RESOURCES;
-  if (texture) return texture;
-});
+  } = RESOURCES
+  if (texture) return texture
+})
 const default_texture = computed(() => {
   const {
     assets: {
@@ -180,9 +184,9 @@ const default_texture = computed(() => {
         textures: { item: { [`${items[props.id].item}.png`]: texture } = {} },
       },
     },
-  } = RESOURCES;
-  if (texture) return texture;
-});
+  } = RESOURCES
+  if (texture) return texture
+})
 const item_mcmeta = computed(() => {
   const {
     assets: {
@@ -190,20 +194,20 @@ const item_mcmeta = computed(() => {
         textures: { custom: { [`${props.id}.mcmeta`]: mcmeta } = {} },
       },
     },
-  } = RESOURCES;
-  return mcmeta;
-});
+  } = RESOURCES
+  return mcmeta
+})
 
 const is_3D_model = computed(() => {
-  const model = item_model.value ?? {};
-  return 'elements' in model;
-});
+  const model = item_model.value ?? {}
+  return 'elements' in model
+})
 
 const writable = reactive({
   name: 'name missing',
   level: 1,
   type: 'misc',
-  item: 'stone',
+  item: 'magma_cream',
   enchanted: true,
   critical: [1, 50],
   damage: [1, 1],
@@ -217,140 +221,114 @@ const writable = reactive({
   },
   description: '',
   custom_model_data: 0,
-});
-const readable = computed(() => normalize_item(writable));
+})
+const readable = computed(() => normalize_item(writable))
 
 watch(props, ({ id }) => Object.assign(writable, items[id]), {
   deep: true,
   immediate: true,
-});
-watch(writable, value => emits('update', normalize_item(value)));
+})
+watch(writable, value => emits('update', normalize_item(value)))
 
 const save_custom_model_data = async () => {
-  const file_name = `${readable.item}.json`;
+  const file_name = `${readable.value.item}.json`
   const source_item_json = {
     overrides: [],
     ...(RESOURCES.assets.minecraft.models.item[file_name] ?? {
       parent: 'minecraft:item/generated',
       textures: {
-        layer0: `minecraft:item/${readable.item}`,
+        layer0: `minecraft:item/${readable.value.item}`,
       },
     }),
-  };
+  }
 
   const unused_index = source_item_json.overrides.reduce(
-    (last, { predicate: { custom_model_data: current_data } }) =>
-      last + current_data + 1,
-    1
-  );
+    (_, { predicate: { custom_model_data: current } }) => current + 1,
+    0
+  )
 
+  writable.custom_model_data = unused_index
   source_item_json.overrides.push({
     predicate: { custom_model_data: unused_index },
     model: `custom/${props.id}`,
-  });
+  })
 
-  RESOURCES.assets.minecraft.models.item[file_name] = source_item_json;
-
-  await save_file({
-    directory_handle: RESOURCES_HANDLE.value,
-    file_name,
-    file_content: JSON.stringify(source_item_json),
-    file_path: ['assets', 'minecraft', 'models', 'item'],
-  });
-};
-
-const delete_custom_model_data = async ({ file_name }) => {
-  const source_item_json = RESOURCES.assets.minecraft.models.item[file_name];
-  if (!source_item_json.overrides?.length) return;
-  source_item_json.overrides = source_item_json.overrides.filter(
-    ({ predicate }) => predicate.custom_model_data !== custom_model_data
-  );
+  RESOURCES.assets.minecraft.models.item[file_name] = source_item_json
 
   await save_file({
     directory_handle: RESOURCES_HANDLE.value,
     file_name,
-    file_content: JSON.stringify(source_item_json),
+    file_content: JSON.stringify(source_item_json, null, 2),
     file_path: ['assets', 'minecraft', 'models', 'item'],
-  });
-};
+  })
+}
 
-const delete_texture = () => {
-  // CODE DUPLICATION WITH HOME.VUE#delete_element
-  const { id } = props;
-  const model_name = `${id}.json`;
-  const texture_name = `${id}.png`;
-  const mcmeta_name = `${id}.mcmeta`;
+const is_uploading = () => !!show_texture_upload.value
 
-  delete RESOURCES.assets.minecraft.models.custom[model_name];
-  delete RESOURCES.assets.minecraft.textures.custom[texture_name];
-  delete RESOURCES.assets.minecraft.textures.custom[mcmeta_name];
-};
-const is_uploading = () => !!show_texture_upload.value;
-
-defineExpose({ is_uploading });
+defineExpose({ is_uploading })
 
 const on_confirm_texture = async () => {
   if (all_files_uploaded.value) {
     const find_file = type =>
       uploaded_files.value.find(({ name }) => file_extension(name) === type)
-        ?.sourceFile;
-    const model = find_file('json');
-    const texture = find_file('png');
-    const mcmeta = find_file('mcmeta');
-    const { value: directory_handle } = RESOURCES_HANDLE;
-    const texture_name = `${props.id}.png`;
-    const model_name = `${props.id}.json`;
-    const mcmeta_name = `${props.id}.mcmeta`;
+        ?.sourceFile
+    const model = find_file('json')
+    const texture = find_file('png')
+    const mcmeta = find_file('mcmeta')
+    const { value: directory_handle } = RESOURCES_HANDLE
+    const texture_name = `${props.id}.png`
+    const model_name = `${props.id}.json`
+    const mcmeta_name = `${props.id}.mcmeta`
     const apply_and_save_texture = texture => {
-      RESOURCES.assets.minecraft.textures.custom[texture_name] = texture;
+      RESOURCES.assets.minecraft.textures.custom[texture_name] = texture
       return save_file({
         directory_handle,
         file_name: texture_name,
         file_content: texture,
         file_path: ['assets', 'minecraft', 'textures', 'custom'],
-      });
-    };
+      })
+    }
     const apply_and_save_model = async model => {
       RESOURCES.assets.minecraft.models.custom[model_name] = JSON.parse(
         await model.text()
-      );
+      )
       return save_file({
         directory_handle,
         file_name: model_name,
         file_content: model,
         file_path: ['assets', 'minecraft', 'models', 'custom'],
-      });
-    };
+      })
+    }
     const apply_and_save_mcmeta = async mcmeta => {
       RESOURCES.assets.minecraft.textures.custom[mcmeta_name] = JSON.parse(
         await mcmeta.text()
-      );
+      )
       return save_file({
         directory_handle,
         file_name: mcmeta_name,
         file_content: mcmeta,
         file_path: ['assets', 'minecraft', 'textures', 'custom'],
-      });
-    };
+      })
+    }
 
     if (model && texture) {
-      await apply_and_save_texture(texture);
-      await apply_and_save_model(model);
-      if (mcmeta) await apply_and_save_mcmeta(mcmeta);
-      await save_custom_model_data();
+      await apply_and_save_texture(texture)
+      await apply_and_save_model(model)
+      if (mcmeta) await apply_and_save_mcmeta(mcmeta)
+      await save_custom_model_data()
     } else if (texture) {
-      await apply_and_save_texture(texture);
-      await save_custom_model_data();
+      await apply_and_save_texture(texture)
+      await save_custom_model_data()
     } else
       toast('You must at least upload a png texture', {
         type: 'error',
-      });
+      })
   }
-  uploaded_files.value = [];
-  show_texture_upload.value = false;
-};
+  uploaded_files.value = []
+  show_texture_upload.value = false
+}
 
-const show_json = inject(`${Editors.ITEMS}:json`);
+const show_json = inject(`${Editors.ITEMS}:json`)
 </script>
 
 <style lang="stylus" scoped>
@@ -471,13 +449,26 @@ const show_json = inject(`${Editors.ITEMS}:json`);
       display flex
       flex-flow column nowrap
       justify-content center
+      .upload
+        margin-bottom 1em
+        width 600px
+        // height 500px
+        // display flex
+        // justify-content center
+        // align-items center
       .three
         border 1px solid rgba(#7F8C8D .4)
         border-radius 12px
 
-      img
-        width 128px
-        image-rendering pixelated
+      .img_container
+        width 600px
+        height 500px
+        display flex
+        justify-content center
+        align-items center
+        img
+          width 128px
+          image-rendering pixelated
 
       .change, .remove
         margin .5em 0

@@ -19,13 +19,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref } from 'vue'
 
-const edit = ref(false);
-const props = defineProps(['modelValue', 'options', 'get_key']);
-const emits = defineEmits(['update:modelValue']);
+const edit = ref(false)
+const props = defineProps(['modelValue', 'options', 'get_key'])
+const emits = defineEmits(['update:modelValue'])
 const validate = value => {
-  if (value) emits('update:modelValue', value);
-  edit.value = false;
-};
+  if (value) emits('update:modelValue', value)
+  edit.value = false
+}
 </script>

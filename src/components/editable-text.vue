@@ -13,19 +13,19 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref } from 'vue'
 
 const allow_edit = () => {
-  edit.value = true;
-};
-const edit = ref(false);
-const props = defineProps(['modelValue']);
-const emits = defineEmits(['update:modelValue']);
+  edit.value = true
+}
+const edit = ref(false)
+const props = defineProps(['modelValue'])
+const emits = defineEmits(['update:modelValue'])
 const validate = value => {
-  const trimmed = value?.trim();
-  if (trimmed) emits('update:modelValue', trimmed);
-  edit.value = false;
-};
+  const trimmed = value?.trim()
+  if (trimmed) emits('update:modelValue', trimmed)
+  edit.value = false
+}
 </script>
 
 <style lang="stylus">

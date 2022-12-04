@@ -1,4 +1,4 @@
-import minecraft_items from './minecraft_items.json';
+import { delete_file, save_file } from './directories.js'
 
 const equipments = [
   'helmet',
@@ -8,11 +8,11 @@ const equipments = [
   'necklace',
   'ring',
   'belt',
-];
+]
 
-const weapons = ['sword', 'axe', 'bow', 'stick'];
+const weapons = ['sword', 'axe', 'bow', 'stick']
 
-export const types = [...equipments, ...weapons, 'misc', 'money', 'consumable'];
+export const types = [...equipments, ...weapons, 'misc', 'consumable']
 
 export const statistics = [
   'vitality',
@@ -21,48 +21,41 @@ export const statistics = [
   'intelligence',
   'chance',
   'agility',
-];
+]
 
-const map_minecraft_item = (type, unsafe_item) => {
+const map_minecraft_item = type => {
   switch (type) {
-    case 'helmet':
-      return 'stone';
     case 'chestplate':
-      return 'leather_chestplate';
+      return 'leather_chestplate'
     case 'leggings':
-      return 'leather_leggings';
+      return 'leather_leggings'
     case 'boots':
-      return 'leather_boots';
+      return 'leather_boots'
     case 'consumable':
-      return 'potion';
-    case 'sword':
-      return 'iron_sword';
-    case 'axe':
-      return 'iron_axe';
+      return 'potion'
     case 'bow':
-      return 'bow';
+    case 'helmet':
+    case 'sword':
+    case 'axe':
     case 'stick':
-      return 'stick';
     case 'misc':
-      if (minecraft_items.includes(unsafe_item)) return unsafe_item;
     default:
-      return 'magma_cream';
+      return 'magma_cream'
   }
-};
+}
 
 const to_range = value => {
   if (Array.isArray(value)) {
-    const [from = 0, to = 0] = value;
-    return [+from, +to];
+    const [from = 0, to = 0] = value
+    return [+from, +to]
   }
-  return [];
-};
+  return []
+}
 
 export const normalize_item = ({
   name: unsafe_name,
   level: unsafe_level,
   type,
-  item: unsafe_item,
   custom_model_data = 0,
   enchanted: unsafe_enchanted,
   critical: unsafe_critical,
@@ -77,10 +70,10 @@ export const normalize_item = ({
   } = {},
   description: unsafe_description = '',
 }) => {
-  const name = unsafe_name?.trim() ?? 'name missing';
-  const level = unsafe_level || 1;
-  const item = map_minecraft_item(type, unsafe_item);
-  const enchanted = !!unsafe_enchanted;
+  const name = unsafe_name?.trim() ?? 'name missing'
+  const level = unsafe_level || 1
+  const item = map_minecraft_item(type)
+  const enchanted = !!unsafe_enchanted
 
   const stats = {
     vitality: to_range(unsafe_vitality),
@@ -89,17 +82,17 @@ export const normalize_item = ({
     intelligence: to_range(unsafe_intelligence),
     chance: to_range(unsafe_chance),
     agility: to_range(unsafe_agility),
-  };
+  }
 
   const critical = Array.isArray(unsafe_critical)
     ? unsafe_critical.slice(0, 2).map(x => Math.abs(x))
-    : [1, 50];
+    : [1, 50]
   const damage = Array.isArray(unsafe_damage)
     ? unsafe_damage.slice(0, 2).map(x => Math.abs(x))
-    : [1, 1];
+    : [1, 1]
   const description = Array.isArray(unsafe_description)
     ? unsafe_description.join(' ')
-    : unsafe_description;
+    : unsafe_description
 
   const mandatory_fields = {
     name,
@@ -108,7 +101,7 @@ export const normalize_item = ({
     custom_model_data,
     enchanted,
     description,
-  };
+  }
 
   switch (type) {
     case 'helmet':
@@ -122,20 +115,12 @@ export const normalize_item = ({
         ...mandatory_fields,
         level,
         stats,
-      };
-    case 'money':
-      return {
-        ...mandatory_fields,
-        name: 'kAres',
-        item: 'gold_ingot',
-        description:
-          'En regardant de plus pres on peut meme y voir la tete de sceat, sa valeure est inestimable',
-      };
+      }
     case 'consumable':
       return {
         ...mandatory_fields,
         level,
-      };
+      }
     case 'sword':
     case 'axe':
     case 'bow':
@@ -146,11 +131,62 @@ export const normalize_item = ({
         stats,
         critical,
         damage,
-      };
+      }
     default:
       return {
         ...mandatory_fields,
         type: 'misc',
-      };
+      }
   }
-};
+}
+
+export const delete_texture = async ({
+  RESOURCES,
+  RESOURCES_HANDLE,
+  id,
+  custom_model_data,
+  item,
+}) => {
+  const delete_custom_model_data = async ({ file_name, custom_model_data }) => {
+    const source_item_json = RESOURCES.assets.minecraft.models.item[file_name]
+    if (!source_item_json.overrides?.length) return
+    source_item_json.overrides = source_item_json.overrides.filter(
+      ({ predicate }) => predicate.custom_model_data !== custom_model_data
+    )
+
+    await save_file({
+      directory_handle: RESOURCES_HANDLE,
+      file_name,
+      file_content: JSON.stringify(source_item_json, null, 2),
+      file_path: ['assets', 'minecraft', 'models', 'item'],
+    })
+  }
+  const model_name = `${id}.json`
+  const texture_name = `${id}.png`
+  const mcmeta_name = `${id}.mcmeta`
+
+  delete RESOURCES.assets.minecraft.models.custom[model_name]
+  delete RESOURCES.assets.minecraft.textures.custom[texture_name]
+  delete RESOURCES.assets.minecraft.textures.custom[mcmeta_name]
+
+  // ignoring errors in all thoses as files may not exists and its fine
+  await delete_file({
+    directory_handle: RESOURCES_HANDLE,
+    file_name: model_name,
+    file_path: ['assets', 'minecraft', 'models', 'custom'],
+  }).catch(() => {})
+  await delete_file({
+    directory_handle: RESOURCES_HANDLE,
+    file_name: texture_name,
+    file_path: ['assets', 'minecraft', 'textures', 'custom'],
+  }).catch(() => {})
+  await delete_file({
+    directory_handle: RESOURCES_HANDLE,
+    file_name: mcmeta_name,
+    file_path: ['assets', 'minecraft', 'textures', 'custom'],
+  }).catch(() => {})
+  await delete_custom_model_data({
+    file_name: `${item}.json`,
+    custom_model_data,
+  })
+}

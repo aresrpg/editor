@@ -9,26 +9,37 @@
     @blur="({ target: { value }}) => validate(value)"
     @keyup.enter="$event.target.blur()"
     :model-value="props.numeric ? +props.modelValue : props.modelValue"
-    autofocus
+    ref="input"
     :min="props.allowNegative ? -99999999999 : 1"
     v-click-outside="() => validate()"
   )
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { nextTick, ref, watchEffect } from 'vue'
 
 const allow_edit = () => {
-  edit.value = true;
-};
-const edit = ref(false);
-const props = defineProps(['modelValue', 'numeric', 'allowNegative']);
-const emits = defineEmits(['update:modelValue']);
+  edit.value = true
+}
+const edit = ref(false)
+const input = ref()
+const props = defineProps(['modelValue', 'numeric', 'allowNegative'])
+const emits = defineEmits(['update:modelValue'])
 const validate = value => {
-  const trimmed = value?.trim();
-  if (trimmed) emits('update:modelValue', trimmed);
-  edit.value = false;
-};
+  const trimmed = value?.trim()
+  if (trimmed) emits('update:modelValue', trimmed)
+  edit.value = false
+}
+
+watchEffect(() => {
+  if (edit.value) {
+    nextTick(() => {
+      const html_input = input.value.input ?? input.value.inputRef
+      html_input.focus()
+      html_input.select()
+    })
+  }
+})
 </script>
 
 <style lang="stylus">

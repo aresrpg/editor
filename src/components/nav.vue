@@ -26,35 +26,35 @@ nav
 </template>
 
 <script setup>
-import { useMessageBox } from '@qvant/qui-max';
-import { inject, computed } from 'vue';
-import { clear } from 'idb-keyval';
+import { useMessageBox } from '@qvant/qui-max'
+import { inject, computed } from 'vue'
+import { clear } from 'idb-keyval'
 
-import Editors from '../core/Editors';
-import Folders from '../core/Folders';
+import Editors from '../core/Editors'
+import Folders from '../core/Folders'
 
-import tween from './tween.vue';
+import tween from './tween.vue'
 
-const message_box = useMessageBox();
+const message_box = useMessageBox()
 
-const ARESRPG = inject(Folders.ARESRPG);
-const RESOURCES = inject(Folders.RESOURCES);
+const ARESRPG = inject(Folders.ARESRPG)
+const RESOURCES = inject(Folders.RESOURCES)
 
-const props = defineProps(['editor']);
+const props = defineProps(['editor'])
 const get_filename = () => {
   switch (props.editor) {
     case Editors.ITEMS:
-      return 'items.json';
+      return 'items.json'
     case Editors.ENTITIES:
-      return 'entities.json';
+      return 'entities.json'
     default:
-      throw new Error(`unknow editor '${props.editor}'`);
+      throw new Error(`unknow editor '${props.editor}'`)
   }
-};
+}
 
-const raw_elements = inject(Folders.ARESRPG)[get_filename()];
-const active_tab = inject('selected_editor');
-const emit = defineEmits(['add']);
+const raw_elements = inject(Folders.ARESRPG)[get_filename()]
+const active_tab = inject('selected_editor')
+const emit = defineEmits(['add'])
 
 const Injected = {
   [Editors.ITEMS]: {
@@ -69,34 +69,34 @@ const Injected = {
     fancy_name: inject(`${Editors.ENTITIES}:fancy_name`),
     select: inject(`${Editors.ENTITIES}:select`),
   },
-};
+}
 
 const search = computed({
   get: () => Injected[props.editor].search.value,
   set: value => {
-    Injected[props.editor].search.value = value;
+    Injected[props.editor].search.value = value
   },
-});
+})
 const show_json = computed({
   get: () => Injected[props.editor].show_json.value,
   set: value => {
-    Injected[props.editor].show_json.value = value;
+    Injected[props.editor].show_json.value = value
   },
-});
+})
 const fancy_name = computed({
   get: () => Injected[props.editor].fancy_name.value,
   set: value => {
-    Injected[props.editor].fancy_name.value = value;
+    Injected[props.editor].fancy_name.value = value
   },
-});
+})
 const select = computed({
   get: () => Injected[props.editor].select.value,
   set: value => {
-    Injected[props.editor].select.value = value;
+    Injected[props.editor].select.value = value
   },
-});
+})
 
-const found_entries_count = inject('entries_count', 0);
+const found_entries_count = inject('entries_count', 0)
 
 const on_reset = async () => {
   try {
@@ -105,25 +105,25 @@ const on_reset = async () => {
       submessage: `Don't worry, you won't loose your changes`,
       confirmButtonText: 'confirm',
       cancelButtonText: 'cancel',
-    });
+    })
 
-    Object.keys(ARESRPG).forEach(key => delete ARESRPG[key]);
-    Object.keys(RESOURCES).forEach(key => delete RESOURCES[key]);
-    localStorage.clear();
-    await clear();
+    Object.keys(ARESRPG).forEach(key => delete ARESRPG[key])
+    Object.keys(RESOURCES).forEach(key => delete RESOURCES[key])
+    localStorage.clear()
+    await clear()
   } catch (error) {
-    console.error(error);
+    console.error(error)
   }
-};
+}
 
-const make_key = (type, rule = type) => JSON.stringify({ type, rule });
+const make_key = (type, rule = type) => JSON.stringify({ type, rule })
 
 const extract = get_property =>
   Array.from(
     Object.values(raw_elements)
       .reduce((set, object) => set.add(get_property(object)), new Set())
       .values()
-  ).sort();
+  ).sort()
 
 const Options = {
   [Editors.ITEMS]: {
@@ -211,7 +211,7 @@ const Options = {
       },
     ]),
   },
-};
+}
 </script>
 
 <style lang="stylus" scoped>
