@@ -15,7 +15,7 @@
 </template>
 
 <script setup>
-import { provide, ref, watchEffect, reactive, onMounted } from 'vue'
+import { provide, ref, watchEffect, reactive } from 'vue'
 import { computed } from '@vue/reactivity'
 import { useMessageBox } from '@qvant/qui-max'
 
@@ -29,7 +29,7 @@ import entityEditor from '../components/entity-editor.vue'
 import editorNav from '../components/nav.vue'
 import stored_ref from '../core/stored_ref.js'
 import message_input from '../components/message-box-input.vue'
-import { delete_texture } from '../core/items.js'
+import Textures from '../core/Textures.js'
 
 const ARESRPG = reactive({})
 const RESOURCES = reactive({})
@@ -57,13 +57,13 @@ const Editor = {
     },
     delete_element: async id => {
       const { custom_model_data, item } = ARESRPG['items.json'][id]
-      await delete_texture({
+      const { delete_texture } = Textures({
         RESOURCES,
         RESOURCES_HANDLE: RESOURCES_HANDLE.value,
-        id,
-        custom_model_data,
         item,
+        item_id: id,
       })
+      await delete_texture(custom_model_data)
 
       delete ARESRPG['items.json'][id]
 

@@ -95,19 +95,15 @@
 </template>
 
 <script setup>
-import { computed, inject, watch, reactive, ref, provide } from 'vue'
+import { computed, inject, watch, reactive, ref } from 'vue'
 import { useToast } from 'vue-toastification'
 import { useMessageBox } from '@qvant/qui-max'
 
 import Editors from '../core/Editors.js'
-import {
-  normalize_item,
-  types,
-  statistics,
-  delete_texture,
-} from '../core/items.js'
+import { normalize_item, types, statistics } from '../core/items.js'
 import Folders from '../core/Folders'
 import { save_file } from '../core/directories.js'
+import Textures from '../core/Textures.js'
 
 import field from './editable-field.vue'
 import options from './editable-select.vue'
@@ -149,13 +145,12 @@ const all_files_uploaded = computed(() => uploaded_files.value.length)
 const create_url = blob => URL.createObjectURL(blob)
 
 const on_delete_texture = () =>
-  delete_texture({
+  Textures({
     RESOURCES,
     RESOURCES_HANDLE: RESOURCES_HANDLE.value,
-    id: props.id,
-    custom_model_data: readable.value.custom_model_data,
-    item: readable.value.item,
-  })
+    item_id: props.id,
+    item: readable.item,
+  }).delete_texture(readable.value.custom_model_data)
 
 const item_model = computed(() => {
   const {
@@ -230,39 +225,6 @@ watch(props, ({ id }) => Object.assign(writable, items[id]), {
 })
 watch(writable, value => emits('update', normalize_item(value)))
 
-const save_custom_model_data = async () => {
-  const file_name = `${readable.value.item}.json`
-  const source_item_json = {
-    overrides: [],
-    ...(RESOURCES.assets.minecraft.models.item[file_name] ?? {
-      parent: 'minecraft:item/generated',
-      textures: {
-        layer0: `minecraft:item/${readable.value.item}`,
-      },
-    }),
-  }
-
-  const unused_index = source_item_json.overrides.reduce(
-    (_, { predicate: { custom_model_data: current } }) => current + 1,
-    0
-  )
-
-  writable.custom_model_data = unused_index
-  source_item_json.overrides.push({
-    predicate: { custom_model_data: unused_index },
-    model: `custom/${props.id}`,
-  })
-
-  RESOURCES.assets.minecraft.models.item[file_name] = source_item_json
-
-  await save_file({
-    directory_handle: RESOURCES_HANDLE.value,
-    file_name,
-    file_content: JSON.stringify(source_item_json, null, 2),
-    file_path: ['assets', 'minecraft', 'models', 'item'],
-  })
-}
-
 const is_uploading = () => !!show_texture_upload.value
 
 defineExpose({ is_uploading })
@@ -273,52 +235,26 @@ const on_confirm_texture = async () => {
       uploaded_files.value.find(({ name }) => file_extension(name) === type)
         ?.sourceFile
     const model = find_file('json')
-    const texture = find_file('png')
+    const custom_texture = find_file('png')
     const mcmeta = find_file('mcmeta')
-    const { value: directory_handle } = RESOURCES_HANDLE
-    const texture_name = `${props.id}.png`
-    const model_name = `${props.id}.json`
-    const mcmeta_name = `${props.id}.mcmeta`
-    const apply_and_save_texture = texture => {
-      RESOURCES.assets.minecraft.textures.custom[texture_name] = texture
-      return save_file({
-        directory_handle,
-        file_name: texture_name,
-        file_content: texture,
-        file_path: ['assets', 'minecraft', 'textures', 'custom'],
-      })
-    }
-    const apply_and_save_model = async model => {
-      RESOURCES.assets.minecraft.models.custom[model_name] = JSON.parse(
-        await model.text()
-      )
-      return save_file({
-        directory_handle,
-        file_name: model_name,
-        file_content: model,
-        file_path: ['assets', 'minecraft', 'models', 'custom'],
-      })
-    }
-    const apply_and_save_mcmeta = async mcmeta => {
-      RESOURCES.assets.minecraft.textures.custom[mcmeta_name] = JSON.parse(
-        await mcmeta.text()
-      )
-      return save_file({
-        directory_handle,
-        file_name: mcmeta_name,
-        file_content: mcmeta,
-        file_path: ['assets', 'minecraft', 'textures', 'custom'],
-      })
-    }
 
-    if (model && texture) {
-      await apply_and_save_texture(texture)
-      await apply_and_save_model(model)
-      if (mcmeta) await apply_and_save_mcmeta(mcmeta)
-      await save_custom_model_data()
-    } else if (texture) {
-      await apply_and_save_texture(texture)
-      await save_custom_model_data()
+    const { set_texture } = Textures({
+      RESOURCES,
+      RESOURCES_HANDLE: RESOURCES_HANDLE.value,
+      item_id: props.id,
+      item: readable.value.item,
+    })
+
+    const custom_model_json = model ? JSON.parse(await model.text()) : undefined
+    const custom_mcmeta = mcmeta ? JSON.parse(await mcmeta.text()) : undefined
+
+    if (custom_texture) {
+      const custom_model_data = await set_texture({
+        custom_texture,
+        custom_model_json,
+        custom_mcmeta,
+      })
+      writable.custom_model_data = custom_model_data
     } else
       toast('You must at least upload a png texture', {
         type: 'error',
