@@ -10,6 +10,7 @@ const default_item_json = item => ({
 
 const default_model_json = item_id => ({
   credit: 'AresRPG generated | https://aresrpg.world',
+  parent: 'item/handheld',
   texture_size: [32, 32],
   textures: {
     layer0: `custom/${item_id}`,
@@ -26,6 +27,11 @@ const get_unused_index = item_json => {
   else if (already_used) return get_unused_index(item_json)
   return index
 }
+
+const sorted_overrides = overrides =>
+  overrides.sort(
+    (o1, o2) => o1.predicate.custom_model_data - o2.predicate.custom_model_data
+  )
 
 export default ({ RESOURCES, RESOURCES_HANDLE, item, item_id }) => {
   const item_filename = `${item}.json`
@@ -45,7 +51,7 @@ export default ({ RESOURCES, RESOURCES_HANDLE, item, item_id }) => {
       }
       const item_json = {
         ...base_json,
-        overrides: [...base_json.overrides, override],
+        overrides: sorted_overrides([...base_json.overrides, override]),
       }
 
       const model_json = custom_model_json ?? default_model_json(item_id)
