@@ -1,7 +1,7 @@
 <template lang="pug">
 .start__container(v-if="interacted")
   span Welcome in AresRpg's data editor
-  span Please locate the #[b(:class="{ valid: present(ARESRPG) }" @click="on_pick_ares") aresrpg/ares-data] and #[b(:class="{ valid: present(RESOURCES) }" @click="on_pick_resources") aresrpg/resourcepacks] folders to start
+  span Please locate the #[b(:class="{ valid: present(ARESRPG) }" @click="on_pick_ares") aresrpg/data] and #[b(:class="{ valid: present(RESOURCES) }" @click="on_pick_resources") aresrpg/resourcepacks] folders to start
 .please__interact(v-else)
   q-button(@click="interacted = true") Start editing !
 </template>
