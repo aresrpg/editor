@@ -8,19 +8,24 @@ const default_item_json = item => ({
   overrides: [],
 })
 
-const default_model_json = item => ({
+const default_model_json = item_id => ({
   credit: 'AresRPG generated | https://aresrpg.world',
   texture_size: [32, 32],
   textures: {
-    0: `custom/${item}`,
+    layer0: `custom/${item_id}`,
   },
 })
 
-const get_unused_index = item_json =>
-  item_json.overrides.reduce(
-    (_, { predicate: { custom_model_data: current = 0 } }) => current + 1,
-    0
+const get_unused_index = item_json => {
+  const index = Math.ceil(Math.random() * 100_000)
+  const already_used = !!item_json.overrides.find(
+    ({ predicate: { custom_model_data } }) => custom_model_data === index
   )
+  if (item_json.overrides.length >= 100_000)
+    alert('Dude how can you have that much items wtf ?')
+  else if (already_used) return get_unused_index(item_json)
+  return index
+}
 
 export default ({ RESOURCES, RESOURCES_HANDLE, item, item_id }) => {
   const item_filename = `${item}.json`
@@ -28,12 +33,11 @@ export default ({ RESOURCES, RESOURCES_HANDLE, item, item_id }) => {
   const model_filename = `${item_id}.json`
   const mcmeta_filename = `${item_id}.mcmeta`
 
-  const base_json =
-    RESOURCES.assets.minecraft.models.item[item_filename] ??
-    default_item_json(item)
-
   return {
     async set_texture({ custom_texture, custom_model_json, custom_mcmeta }) {
+      const base_json =
+        RESOURCES.assets.minecraft.models.item[item_filename] ??
+        default_item_json(item)
       const custom_model_data = get_unused_index(base_json)
       const override = {
         predicate: { custom_model_data },
@@ -44,7 +48,7 @@ export default ({ RESOURCES, RESOURCES_HANDLE, item, item_id }) => {
         overrides: [...base_json.overrides, override],
       }
 
-      const model_json = custom_model_json ?? default_model_json(item)
+      const model_json = custom_model_json ?? default_model_json(item_id)
 
       RESOURCES.assets.minecraft.models.item[item_filename] = item_json
       RESOURCES.assets.minecraft.models.custom[model_filename] = model_json
@@ -59,7 +63,7 @@ export default ({ RESOURCES, RESOURCES_HANDLE, item, item_id }) => {
         await save_file({
           directory_handle: RESOURCES_HANDLE,
           file_name: mcmeta_filename,
-          file_content: custom_mcmeta,
+          file_content: JSON.stringify(custom_mcmeta),
           file_path: ['assets', 'minecraft', 'textures', 'custom'],
         })
       }
@@ -91,17 +95,22 @@ export default ({ RESOURCES, RESOURCES_HANDLE, item, item_id }) => {
       return custom_model_data
     },
 
-    async delete_texture(custom_model_data) {
+    async delete_texture() {
+      const base_json =
+        RESOURCES.assets.minecraft.models.item[item_filename] ??
+        default_item_json(item)
       const item_json = {
         ...base_json,
         overrides: base_json.overrides.filter(
-          ({ predicate }) => predicate.custom_model_data !== custom_model_data
+          ({ model }) => model !== `custom/${item_id}`
         ),
       }
 
-      delete RESOURCES.assets.minecraft.models.item[item_filename]
+      delete RESOURCES.assets.minecraft.textures.custom[mcmeta_filename]
       delete RESOURCES.assets.minecraft.models.custom[model_filename]
       delete RESOURCES.assets.minecraft.textures.custom[texture_filename]
+
+      RESOURCES.assets.minecraft.models.item[item_filename] = item_json
 
       // save models/item/<item>.json file (which points to the model)
       await save_file({

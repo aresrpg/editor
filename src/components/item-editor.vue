@@ -39,13 +39,13 @@
       .damage(v-if="readable.damage")
         span Damage:
         .multiple
-          field(:numeric="true" v-model="writable.critical[0]")
+          field(:numeric="true" v-model="writable.damage[0]")
             template(#default="{ click }")
-              .inner(@click="click") {{ readable.critical[0] }}
+              .inner(@click="click") {{ readable.damage[0] }}
           .sep to
-          field(:numeric="true" v-model="writable.critical[1]")
+          field(:numeric="true" v-model="writable.damage[1]")
             template(#default="{ click }")
-              .inner(@click="click") {{ readable.critical[1] }}
+              .inner(@click="click") {{ readable.damage[1] }}
 
       //- item stats
       .stats.full(v-if="readable.stats")
@@ -69,7 +69,7 @@
     .right(v-if="show_texture_upload")
       q-upload.upload(
         :value="uploaded_files"
-        :accept="['application/JSON', 'image/png']"
+        :accept="['.json', '.png', '.mcmeta']"
         :multiple="true"
         :limit="3"
         text-upload-file="Upload item.json & item.png"
@@ -149,8 +149,12 @@ const on_delete_texture = () =>
     RESOURCES,
     RESOURCES_HANDLE: RESOURCES_HANDLE.value,
     item_id: props.id,
-    item: readable.item,
-  }).delete_texture(readable.value.custom_model_data)
+    item: readable.value.item,
+  })
+    .delete_texture()
+    .then(() => {
+      writable.custom_model_data = 0
+    })
 
 const item_model = computed(() => {
   const {
@@ -238,7 +242,7 @@ const on_confirm_texture = async () => {
     const custom_texture = find_file('png')
     const mcmeta = find_file('mcmeta')
 
-    const { set_texture } = Textures({
+    const { set_texture, delete_texture } = Textures({
       RESOURCES,
       RESOURCES_HANDLE: RESOURCES_HANDLE.value,
       item_id: props.id,
@@ -249,6 +253,7 @@ const on_confirm_texture = async () => {
     const custom_mcmeta = mcmeta ? JSON.parse(await mcmeta.text()) : undefined
 
     if (custom_texture) {
+      await delete_texture()
       const custom_model_data = await set_texture({
         custom_texture,
         custom_model_json,
