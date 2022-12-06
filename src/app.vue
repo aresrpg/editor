@@ -24,6 +24,13 @@ sc-disableScollBar()
   font-size 18px
   background #212121
 
+@css {
+  :root {
+    --color-primary: #2980B9;
+    --color-primary-purple: #3498DB;
+  }
+}
+
 *
   sc-reset()
   sc-disableScollBar()

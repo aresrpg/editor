@@ -33,10 +33,17 @@ const transform_values = ({ object, transform }) =>
 const Folder = {
   aresrpg: {
     key: Folders.ARESRPG,
-    validate: ({ 'items.json': items, 'entities.json': entities }) =>
-      items && entities,
+    validate: ({
+      'items.json': items,
+      'entities.json': entities,
+      'sets.json': sets,
+    }) => items && entities && sets,
     handle: (
-      { 'items.json': items_json, 'entities.json': entities_json },
+      {
+        'items.json': items_json,
+        'entities.json': entities_json,
+        'sets.json': sets,
+      },
       handle
     ) => {
       ARESRPG_HANDLE.value = handle
@@ -44,7 +51,11 @@ const Folder = {
         object: items_json,
         transform: normalize_item,
       })
-      Object.assign(ARESRPG, { entities_json, 'items.json': normalized_items })
+      Object.assign(ARESRPG, {
+        'entities.json': entities_json,
+        'items.json': normalized_items,
+        'sets.json': sets,
+      })
     },
   },
   resources: {

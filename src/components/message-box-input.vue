@@ -7,8 +7,9 @@ import Folders from '../core/Folders'
 const message = inject('qMessageBoxContainer')
 const id = ref('')
 const items = inject(Folders.ARESRPG)['items.json']
+const sets = inject(Folders.ARESRPG)['sets.json']
 const name_list = computed(() =>
-  Object.keys(items)
+  Object.keys({ ...items, ...sets })
     .filter(name => name.startsWith(id.value))
     .sort()
     .slice(0, 5)
@@ -35,7 +36,7 @@ q-message-box-content
     .names
       .name(v-for="name in name_list" :key="name") {{ name }}
   template(#actions)
-    q-button(@click='on_confirm' :disabled="!id.length || id in items") Create
+    q-button(@click='on_confirm' :disabled="!id.length || id in items || id in sets") Create
     q-button(theme='secondary' @click='on_cancel') Cancel
 </template>
 

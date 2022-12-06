@@ -3,8 +3,8 @@
   .content
     .list__container
       .element(
-          :class="{ selected: selected_element === element._id }"
-          @click="() => select_element(element._id)"
+          :class="{ selected: selected_element === element._id, sub: !!element.items }"
+          @click.stop="() => select_element(element._id)"
           v-for="element in elements"
           :key="element._id"
         )
@@ -15,6 +15,20 @@
           icon="q-icon-close"
           @click.stop="() => on_delete_element(element)"
         )
+        .sub_elements(v-if="element.items")
+          .sub_element(
+            v-for="sub_element in element.items"
+            :class="{ selected: selected_element === sub_element._id }"
+            @click.stop="() => select_element(sub_element._id)"
+            :key="sub_element._id"
+            )
+            .key {{ sub_element.id }}
+            q-button.del(
+              theme="link"
+              type="icon"
+              icon="q-icon-close"
+              @click.stop="() => on_delete_element(sub_element)"
+            )
     slot.slot(:set_ref="set_ref" v-if="selected_element" :selected="selected_element")
 </template>
 
@@ -32,13 +46,15 @@ const message_box = useMessageBox()
 // used to call functions on the component
 const current_editor_instance = ref()
 const set_ref = slot_ref => (current_editor_instance.value = slot_ref)
+const DATA = inject(Folders.ARESRPG)
 
 const Injected = {
   [Editors.ITEMS]: {
     search: inject(`${Editors.ITEMS}:search`, ''),
     fancy_name: inject(`${Editors.ITEMS}:fancy_name`),
     select: inject(`${Editors.ITEMS}:select`),
-    raw_elements: inject(Folders.ARESRPG)['items.json'],
+    raw_elements: DATA['items.json'],
+    sets: DATA['sets.json'],
   },
   [Editors.ENTITIES]: {
     search: inject(`${Editors.ENTITIES}:search`, ''),
@@ -66,6 +82,7 @@ const select = computed({
     Injected[props.editor].select.value = value
   },
 })
+
 const raw_elements = computed({
   get: () => Injected[props.editor].raw_elements,
   set: value => {
@@ -73,10 +90,18 @@ const raw_elements = computed({
   },
 })
 
+const raw_sets = computed({
+  get: () => Injected[props.editor].sets,
+  set: value => {
+    Object.assign(Injected[props.editor].sets, value)
+  },
+})
+
 const found_entries_count = inject('entries_count', 0)
 
 const selected_element = stored_ref(`${props.editor}:selected`)
 const select_element = async id => {
+  console.log('select', id)
   if (current_editor_instance.value?.is_uploading()) {
     await message_box({
       title: `Not so fast!`,
@@ -99,6 +124,10 @@ const Extractors = {
     level: ({ level }) => level,
     enchanted: ({ enchanted }) => enchanted,
     description: ({ description }) => description,
+    get_set_name: id =>
+      Object.entries(Injected[Editors.ITEMS].sets).find(([, value]) =>
+        value.items.includes(id)
+      )?.[0],
   },
   [Editors.ENTITIES]: {
     type: ({ category }) => category,
@@ -108,9 +137,18 @@ const Extractors = {
   },
 }
 
-const search_filter = ({ id, ...rest }) => {
-  const name = Extractors[props.editor].name(rest)
-  if (search.value) return contains(name) || contains(id)
+const search_filter = ({ _id, items, ...rest }) => {
+  const extractor = Extractors[props.editor]
+  const name = extractor.name(rest)
+  const name_of_set = extractor.get_set_name(_id)
+  console.log(Object.entries(Injected[Editors.ITEMS].sets))
+  console.log('id is', _id, name_of_set)
+  if (search.value) {
+    const name_contained =
+      contains(name) || contains(_id) || (name_of_set && contains(name_of_set))
+    if (items) return name_contained || items.filter(search_filter).length
+    return name_contained
+  }
   return true
 }
 
@@ -164,12 +202,40 @@ const Options = {
 
 const elements = computed(() => {
   const { insert_key } = Options[props.editor]
-  const result = Object.entries(raw_elements.value)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(insert_key)
-    .filter(search_filter)
-    .filter(properties_filter)
-  found_entries_count.value = result.length
+  const apply_filters = array =>
+    array
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(insert_key)
+      .filter(search_filter)
+      .filter(properties_filter)
+
+  const raw_elements_entries = Object.entries(raw_elements.value)
+
+  // here we merge the sets and the raw items
+  const merge_sets = [
+    ...Object.entries(raw_sets.value).map(([key, value]) => [
+      key,
+      {
+        ...value,
+        items: apply_filters(
+          raw_elements_entries.filter(([key]) => value.items.includes(key))
+        ),
+      },
+    ]),
+    ...raw_elements_entries.filter(
+      ([key]) =>
+        !Object.values(raw_sets.value)
+          .flatMap(({ items }) => items)
+          .includes(key)
+    ),
+  ]
+
+  const result = apply_filters(merge_sets)
+  console.log(result)
+  found_entries_count.value = result.reduce(
+    (length, { items = [] }) => length + 1 + items.length,
+    0
+  )
   return result
 })
 
@@ -225,11 +291,53 @@ const on_delete_element = async ({ _id }) => {
           color #7F8C8D
           opacity .5
           &:hover
-            color crimson
+            color var(--color-primary)
             opacity 1
         &.selected
           position relative
           background var(--gradient-primary)
           color white
           transform translateX(-10px)
+          .del
+            color white
+            opacity 1
+            &:hover
+              color black
+              opacity 1
+        &.sub
+          flex-flow column nowrap
+          position relative
+          height max-content
+          padding 0
+          pointer-events none
+          border 2px solid #3498DB
+          >.key
+            padding .5em 1em
+            font-weight 900
+            text-transform uppercase
+            font-size .8em
+          >.del
+            display none
+          .sub_elements
+            background #f0f0f3
+            display flex
+            flex-flow column nowrap
+            width 100%
+            .sub_element
+              pointer-events auto
+              cursor pointer
+              padding-left 1.5em
+              height 25px
+              display flex
+              flex-flow row nowrap
+              align-items center
+              &.selected
+                background var(--gradient-primary)
+                color white
+                .del
+                  color white
+                  opacity 1
+                  &:hover
+                    color black
+                    opacity 1
 </style>
