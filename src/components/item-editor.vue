@@ -1,5 +1,19 @@
 <template lang="pug">
 .item__container
+  .item__set(v-if="set_of_item")
+    .set_name
+      field(v-model="writable_set.name")
+        template(#default="{ click }")
+          .title(@click="click") {{ readable_set.name }}
+    span Stats when multiples items are equipped
+    .set_bonus
+      .bonus(v-for="(current_stats, index) in readable_set.stats" :key="index" v-if="index !== 0")
+        span {{ index +1 }} items
+        .stat(v-for="stat in statistics" :key="stat" v-if="current_stats")
+          .name(:class="stat") {{ stat }}:
+          field(:numeric="true" :allowNegative="true" v-model="writable_set.stats[index][stat]")
+            template(#default="{ click }")
+              .value(@click="click") {{ current_stats[stat] ?? 0 }}
   //- name
   .item__middle
     .left
@@ -100,7 +114,14 @@ import { useToast } from 'vue-toastification'
 import { useMessageBox } from '@qvant/qui-max'
 
 import Editors from '../core/Editors.js'
-import { normalize_item, types, statistics } from '../core/items.js'
+import {
+  normalize_item,
+  normalize_set,
+  types,
+  statistics,
+  DEFAULT_ITEM,
+  DEFAULT_SET,
+} from '../core/items.js'
 import Folders from '../core/Folders'
 import { save_file } from '../core/directories.js'
 import Textures from '../core/Textures.js'
@@ -111,8 +132,10 @@ import textField from './editable-text.vue'
 import three from './three.vue'
 
 const props = defineProps(['id', 'listen_deletion'])
-const emits = defineEmits(['update'])
-const items = inject(Folders.ARESRPG)['items.json']
+const emits = defineEmits(['update', 'update_set'])
+const DATA = inject(Folders.ARESRPG)
+const items = DATA['items.json']
+const sets = DATA['sets.json']
 const message_box = useMessageBox()
 
 const RESOURCES = inject(Folders.RESOURCES)
@@ -134,6 +157,20 @@ const on_upload_model = async (sourceFile, file_id) => {
     name: sourceFile.name,
   })
 }
+
+const set_of_item = computed(() => {
+  const found_set = Object.entries(sets).find(([, value]) =>
+    value.items.includes(props.id)
+  )
+  if (found_set) {
+    const [_id, value] = found_set
+    return {
+      _id,
+      ...value,
+    }
+  }
+  return undefined
+})
 
 const file_extension = file_name => {
   const parts = file_name.split('.')
@@ -202,25 +239,8 @@ const is_3D_model = computed(() => {
   return 'elements' in model
 })
 
-const writable = reactive({
-  name: 'name missing',
-  level: 1,
-  type: 'misc',
-  item: 'magma_cream',
-  enchanted: true,
-  critical: [1, 50],
-  damage: [1, 1],
-  stats: {
-    vitality: [],
-    mind: [],
-    strength: [],
-    intelligence: [],
-    chance: [],
-    agility: [],
-  },
-  description: '',
-  custom_model_data: 0,
-})
+// item
+const writable = reactive(DEFAULT_ITEM)
 const readable = computed(() => normalize_item(writable))
 
 watch(props, ({ id }) => Object.assign(writable, items[id]), {
@@ -228,6 +248,24 @@ watch(props, ({ id }) => Object.assign(writable, items[id]), {
   immediate: true,
 })
 watch(writable, value => emits('update', normalize_item(value)))
+
+// set
+const writable_set = reactive(DEFAULT_SET)
+const readable_set = computed(() => normalize_set(writable_set))
+
+watch(
+  set_of_item,
+  ({ _id } = {}) => {
+    if (_id) {
+      Object.assign(writable_set, sets[_id])
+    }
+  },
+  {
+    deep: true,
+    immediate: true,
+  }
+)
+watch(writable_set, value => emits('update_set', normalize_set(value)))
 
 const is_uploading = () => !!show_texture_upload.value
 
@@ -290,18 +328,74 @@ const show_json = inject(`${Editors.ITEMS}:json`)
   overflow hidden
   overflow-y auto
   height calc(100vh - 50px - 1em)
-  >div
+
+  .item__set
     display flex
-    padding-left 2em
-    margin-bottom .25em
+    width 100%
     flex-flow column nowrap
-    padding-top .5em
-    width 200px
-    >span
-      width 100px
-      text-transform uppercase
-      font-size .7em
-      font-weight 900
+    .set_name
+      display flex
+      flex-flow row nowrap
+      width 100%
+      margin-bottom .25em
+      padding-left 0
+      .title
+        position relative
+        font-size 1.6em
+        height max-content
+        padding-left .5em
+        justify-content stretch
+
+        &.enchant
+          animation enchanted 2s linear infinite reverse
+
+        &::before
+          content ''
+          position absolute
+          top 0
+          left @top
+          width 2px
+          bottom 0
+          border-radius 3px
+          background var(--color-primary)
+    .set_bonus
+      display flex
+      flex-flow row nowrap
+      .bonus
+        border 1px dotted black
+        display flex
+        flex-flow column nowrap
+        margin 1em 1em 0 1em
+        padding 1em
+        span
+          opacity .8
+        .stat
+          display flex
+          flex-flow row nowrap
+          height 17px
+          .name
+            text-transform uppercase
+            font-size .7em
+            width 90px
+            font-weight 900
+            &.vitality
+              color #C0392B
+            &.mind
+              color #8E44AD
+            &.strength
+              color #6D4C41
+            &.intelligence
+              color #F39C12
+            &.chance
+              color #2980B9
+            &.agility
+              color #27AE60
+            &.speed
+              color #00C853
+            &.reach
+              color #C51162
+            &.power
+              color #304FFE
 
   .item__middle
     display flex
@@ -351,6 +445,12 @@ const show_json = inject(`${Editors.ITEMS}:json`)
               color #2980B9
             &.agility
               color #27AE60
+            &.speed
+              color #00C853
+            &.reach
+              color #C51162
+            &.power
+              color #304FFE
       .name
         display flex
         flex-flow row nowrap
