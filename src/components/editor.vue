@@ -3,7 +3,7 @@
   .content
     .list__container
       .element(
-          :class="{ selected: selected_element === element._id, sub: !!element.items }"
+          :class="{ selected: selected_element === element._id, sub: !!element.items, moved: selected_set_id === element._id || selected_element === element._id }"
           @click.stop="() => select_element(element._id)"
           v-for="element in elements"
           :key="element._id"
@@ -98,10 +98,15 @@ const raw_sets = computed({
 })
 
 const found_entries_count = inject('entries_count', 0)
-
 const selected_element = stored_ref(`${props.editor}:selected`)
+const selected_set_id = computed(() => {
+  const [key] =
+    Object.entries(Injected[props.editor].sets).find(([, value]) =>
+      value.items.includes(selected_element.value)
+    ) ?? []
+  return key
+})
 const select_element = async id => {
-  console.log('select', id)
   if (current_editor_instance.value?.is_uploading()) {
     await message_box({
       title: `Not so fast!`,
@@ -141,8 +146,6 @@ const search_filter = ({ _id, items, ...rest }) => {
   const extractor = Extractors[props.editor]
   const name = extractor.name(rest)
   const name_of_set = extractor.get_set_name(_id)
-  console.log(Object.entries(Injected[Editors.ITEMS].sets))
-  console.log('id is', _id, name_of_set)
   if (search.value) {
     const name_contained =
       contains(name) || contains(_id) || (name_of_set && contains(name_of_set))
@@ -217,6 +220,7 @@ const elements = computed(() => {
       key,
       {
         ...value,
+        _id: key,
         items: apply_filters(
           raw_elements_entries.filter(([key]) => value.items.includes(key))
         ),
@@ -231,7 +235,6 @@ const elements = computed(() => {
   ]
 
   const result = apply_filters(merge_sets)
-  console.log(result)
   found_entries_count.value = result.reduce(
     (length, { items = [] }) => length + 1 + items.length,
     0
@@ -293,11 +296,12 @@ const on_delete_element = async ({ _id }) => {
           &:hover
             color var(--color-primary)
             opacity 1
+        &.moved
+          transform translateX(-10px)
         &.selected
           position relative
           background var(--gradient-primary)
           color white
-          transform translateX(-10px)
           .del
             color white
             opacity 1

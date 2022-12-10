@@ -10,6 +10,7 @@
           v-if="Editor[selected_editor].content.value[selected]"
           :id="selected"
           @update="value => Editor[selected_editor].update_content(selected, value)"
+          @update_set="value => Editor[selected_editor].update_set(selected, value)"
         )
   start(v-else)
 </template>
@@ -30,6 +31,7 @@ import editorNav from '../components/nav.vue'
 import stored_ref from '../core/stored_ref.js'
 import message_input from '../components/message-box-input.vue'
 import Textures from '../core/Textures.js'
+import { DEFAULT_ITEM } from '../core/items'
 
 const ARESRPG = reactive({})
 const RESOURCES = reactive({})
@@ -55,6 +57,21 @@ const Editor = {
         file_path: [],
       })
     },
+    update_set: async (key, value) => {
+      const set_of_item = Object.entries(ARESRPG['sets.json']).find(
+        ([, value]) => value.items.includes(key)
+      )
+      if (set_of_item) {
+        const [set_id] = set_of_item
+        ARESRPG['sets.json'][set_id] = value
+        await save_file({
+          directory_handle: ARESRPG_HANDLE.value,
+          file_name: 'sets.json',
+          file_content: JSON.stringify(ARESRPG['sets.json'], null, 2),
+          file_path: [],
+        })
+      }
+    },
     delete_element: async id => {
       const { custom_model_data, item } = ARESRPG['items.json'][id]
       const { delete_texture } = Textures({
@@ -77,25 +94,7 @@ const Editor = {
     add_element: async () => {
       try {
         const { payload } = await message_box(message_input)
-        ARESRPG['items.json'][payload] = {
-          name: 'name missing',
-          level: 1,
-          type: 'misc',
-          item: 'magma_cream',
-          enchanted: false,
-          critical: [1, 50],
-          damage: [1, 1],
-          stats: {
-            vitality: [],
-            mind: [],
-            strength: [],
-            intelligence: [],
-            chance: [],
-            agility: [],
-          },
-          description: '',
-          custom_model_data: 0,
-        }
+        ARESRPG['items.json'][payload] = DEFAULT_ITEM
       } catch {}
     },
   },

@@ -8,6 +8,7 @@ const equipments = [
   'necklace',
   'ring',
   'belt',
+  'shield',
 ]
 
 const weapons = ['sword', 'axe', 'bow', 'stick']
@@ -21,7 +22,87 @@ export const statistics = [
   'intelligence',
   'chance',
   'agility',
+  'speed',
+  'reach',
+  'power',
 ]
+
+export const DEFAULT_ITEM = {
+  name: 'name missing',
+  level: 1,
+  type: 'misc',
+  item: 'magma_cream',
+  enchanted: true,
+  critical: [1, 50],
+  damage: [1, 1],
+  stats: {
+    vitality: [],
+    mind: [],
+    strength: [],
+    intelligence: [],
+    chance: [],
+    agility: [],
+    speed: [],
+    reach: [],
+    power: [],
+  },
+  description: '',
+  custom_model_data: 0,
+}
+
+export const DEFAULT_SET = {
+  name: 'name missing',
+  stats: [],
+  items: [],
+}
+
+const to_range = value => {
+  if (Array.isArray(value)) {
+    const [from = 0, to = 0] = value
+    return [+from, +to]
+  }
+  return []
+}
+
+const to_number = value => (globalThis.isNaN(value) ? 0 : +value)
+
+export const normalize_set = ({
+  name: unsafe_name,
+  stats: unsafe_stats,
+  items: unsafe_items,
+}) => ({
+  name: unsafe_name?.trim() ?? 'name missing',
+  // the index+1 represent how many item the player needs to gain the stats
+  stats: [
+    ...unsafe_stats.map(
+      ({
+        vitality: unsafe_vitality,
+        mind: unsafe_mind,
+        strength: unsafe_strength,
+        intelligence: unsafe_intelligence,
+        chance: unsafe_chance,
+        agility: unsafe_agility,
+        speed: unsafe_speed,
+        reach: unsafe_reach,
+        power: unsafe_power,
+      } = {}) => {
+        return {
+          vitality: to_number(unsafe_vitality),
+          mind: to_number(unsafe_mind),
+          strength: to_number(unsafe_strength),
+          intelligence: to_number(unsafe_intelligence),
+          chance: to_number(unsafe_chance),
+          agility: to_number(unsafe_agility),
+          speed: to_number(unsafe_speed),
+          reach: to_number(unsafe_reach),
+          power: to_number(unsafe_power),
+        }
+      }
+    ),
+    ...Array.from({ length: 8 }),
+  ],
+  items: unsafe_items.filter(item => typeof item === 'string'),
+})
 
 const map_minecraft_item = type => {
   switch (type) {
@@ -44,14 +125,6 @@ const map_minecraft_item = type => {
   }
 }
 
-const to_range = value => {
-  if (Array.isArray(value)) {
-    const [from = 0, to = 0] = value
-    return [+from, +to]
-  }
-  return []
-}
-
 export const normalize_item = ({
   name: unsafe_name,
   level: unsafe_level,
@@ -67,6 +140,9 @@ export const normalize_item = ({
     intelligence: unsafe_intelligence = [],
     chance: unsafe_chance = [],
     agility: unsafe_agility = [],
+    speed: unsafe_speed = [],
+    reach: unsafe_reach = [],
+    power: unsafe_power = [],
   } = {},
   description: unsafe_description = '',
 }) => {
@@ -82,6 +158,9 @@ export const normalize_item = ({
     intelligence: to_range(unsafe_intelligence),
     chance: to_range(unsafe_chance),
     agility: to_range(unsafe_agility),
+    speed: to_range(unsafe_speed),
+    reach: to_range(unsafe_reach),
+    power: to_range(unsafe_power),
   }
 
   const critical = Array.isArray(unsafe_critical)
