@@ -19,13 +19,19 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 
 const edit = ref(false)
 const props = defineProps(['modelValue', 'options', 'get_key'])
 const emits = defineEmits(['update:modelValue'])
 const validate = value => {
+  console.log(props.options)
   if (value) emits('update:modelValue', value)
   edit.value = false
 }
 </script>
+
+<style lang="stylus" scoped>
+.field
+  cursor pointer
+</style>
