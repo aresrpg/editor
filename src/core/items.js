@@ -14,7 +14,8 @@ const equipments = [
 const weapons = ['sword', 'axe', 'bow', 'stick']
 
 export const types = [...equipments, ...weapons, 'misc', 'consumable']
-
+export const elements = ['earth', 'fire', 'water', 'air']
+export const damage_types = ['damage', 'life_steal', 'heal']
 export const statistics = [
   'vitality',
   'mind',
@@ -24,7 +25,7 @@ export const statistics = [
   'agility',
   'speed',
   'reach',
-  'power',
+  'haste',
 ]
 
 export const DEFAULT_ITEM = {
@@ -33,8 +34,8 @@ export const DEFAULT_ITEM = {
   type: 'misc',
   item: 'magma_cream',
   enchanted: true,
-  critical: [1, 50],
-  damage: [1, 1],
+  critical: { from: 1, to: 50 },
+  damage: [{ from: 1, to: 1, life_steal: false }],
   stats: {
     vitality: [],
     mind: [],
@@ -44,7 +45,7 @@ export const DEFAULT_ITEM = {
     agility: [],
     speed: [],
     reach: [],
-    power: [],
+    haste: [],
   },
   description: '',
   custom_model_data: 0,
@@ -84,7 +85,7 @@ export const normalize_set = ({
         agility: unsafe_agility,
         speed: unsafe_speed,
         reach: unsafe_reach,
-        power: unsafe_power,
+        haste: unsafe_haste,
       } = {}) => {
         return {
           vitality: to_number(unsafe_vitality),
@@ -95,7 +96,7 @@ export const normalize_set = ({
           agility: to_number(unsafe_agility),
           speed: to_number(unsafe_speed),
           reach: to_number(unsafe_reach),
-          power: to_number(unsafe_power),
+          haste: to_number(unsafe_haste),
         }
       }
     ),
@@ -125,13 +126,32 @@ const map_minecraft_item = type => {
   }
 }
 
+// make sure a damage object has the correct format
+const format_damage = ({ from, to, type, element } = {}) => ({
+  from: !globalThis.isNaN(from) ? +from : 1,
+  to: !globalThis.isNaN(to) ? +to : 1,
+  type: damage_types.includes(type) ? type : 'damage',
+  element: elements.includes(element) ? element : 'earth',
+})
+
+// @TODO:
+// new damages lines
+// select damage element
+// allow life steal
+// fix critical
+// add critical bonus (increased damage on critical hit)
+
 export const normalize_item = ({
   name: unsafe_name,
   level: unsafe_level,
   type,
   custom_model_data = 0,
   enchanted: unsafe_enchanted,
-  critical: unsafe_critical,
+  critical: {
+    from: unsafe_crit_from,
+    to: unsafe_crit_to,
+    bonus: unsafe_bonus,
+  } = {},
   damage: unsafe_damage,
   stats: {
     vitality: unsafe_vitality = [],
@@ -142,12 +162,12 @@ export const normalize_item = ({
     agility: unsafe_agility = [],
     speed: unsafe_speed = [],
     reach: unsafe_reach = [],
-    power: unsafe_power = [],
+    haste: unsafe_haste = [],
   } = {},
   description: unsafe_description = '',
 }) => {
   const name = unsafe_name?.trim() ?? 'name missing'
-  const level = unsafe_level || 1
+  const level = +unsafe_level || 1
   const item = map_minecraft_item(type)
   const enchanted = !!unsafe_enchanted
 
@@ -160,15 +180,23 @@ export const normalize_item = ({
     agility: to_range(unsafe_agility),
     speed: to_range(unsafe_speed),
     reach: to_range(unsafe_reach),
-    power: to_range(unsafe_power),
+    haste: to_range(unsafe_haste),
   }
 
-  const critical = Array.isArray(unsafe_critical)
-    ? unsafe_critical.slice(0, 2).map(x => Math.abs(x))
-    : [1, 50]
+  const critical = {
+    from: !globalThis.isNaN(unsafe_crit_from) ? +unsafe_crit_from : 1,
+    to: !globalThis.isNaN(unsafe_crit_to) ? +unsafe_crit_to : 50,
+    bonus: !globalThis.isNaN(unsafe_bonus) ? +unsafe_bonus : 10,
+  }
   const damage = Array.isArray(unsafe_damage)
-    ? unsafe_damage.slice(0, 2).map(x => Math.abs(x))
-    : [1, 1]
+    ? unsafe_damage.map(format_damage)
+    : [
+        {
+          from: 1,
+          to: 1,
+          life_steal: false,
+        },
+      ]
   const description = Array.isArray(unsafe_description)
     ? unsafe_description.join(' ')
     : unsafe_description

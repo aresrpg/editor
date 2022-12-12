@@ -41,25 +41,45 @@
       .critical(v-if="readable.critical")
         span Critical:
         .multiple
-          field(:numeric="true" v-model="writable.critical[0]")
+          field(:numeric="true" v-model="writable.critical.from")
             template(#default="{ click }")
-              .inner(@click="click") {{ readable.critical[0] }}
+              .inner(@click="click") {{ readable.critical.from }}
           .sep /
-          field(:numeric="true" v-model="writable.critical[1]")
+          field(:numeric="true" v-model="writable.critical.to")
             template(#default="{ click }")
-              .inner(@click="click") {{ readable.critical[1] }}
+              .inner(@click="click") {{ readable.critical.to }}
+          .bonus
+            .par (+
+            field(:numeric="true" v-model="writable.critical.bonus")
+              template(#default="{ click }")
+                .inner(@click="click") {{ readable.critical.bonus }}
+            .par )
+
 
       //- damage
       .damage(v-if="readable.damage")
         span Damage:
-        .multiple
-          field(:numeric="true" v-model="writable.damage[0]")
+        .damage_row(v-for="(row, index) in readable.damage" :key="index" :class="{ [readable.damage[index].element]: true }")
+          field(:numeric="true" v-model="writable.damage[index].from" :element="readable.damage[index].element")
             template(#default="{ click }")
-              .inner(@click="click") {{ readable.damage[0] }}
+              .inner(@click="click") {{ readable.damage[index].from }}
           .sep to
-          field(:numeric="true" v-model="writable.damage[1]")
+          field(:numeric="true" v-model="writable.damage[index].to" :element="readable.damage[index].element")
             template(#default="{ click }")
-              .inner(@click="click") {{ readable.damage[1] }}
+              .inner.right(@click="click") {{ readable.damage[index].to }}
+          options.options(:options="elements" v-model="writable.damage[index].element")
+            template(#default="{ click }")
+              .inner(@click="click") {{ readable.damage[index].element }}
+          options.options(:options="damage_types" v-model="writable.damage[index].type")
+            template(#default="{ click }")
+              .inner(@click="click") {{ readable.damage[index].type }}
+          q-button.del(
+              theme="link"
+              type="icon"
+              icon="q-icon-close"
+              @click="() => del_damage(index)"
+            )
+        .new_damage_row(@click="add_damage") Add damage
 
       //- item stats
       .stats.full(v-if="readable.stats")
@@ -119,6 +139,8 @@ import {
   normalize_set,
   types,
   statistics,
+  elements,
+  damage_types,
   DEFAULT_ITEM,
   DEFAULT_SET,
 } from '../core/items.js'
@@ -271,6 +293,9 @@ const is_uploading = () => !!show_texture_upload.value
 
 defineExpose({ is_uploading })
 
+const add_damage = () => writable.damage.push({})
+const del_damage = index => writable.damage.splice(index, 1)
+
 const on_confirm_texture = async () => {
   if (all_files_uploaded.value) {
     const find_file = type =>
@@ -311,6 +336,24 @@ const show_json = inject(`${Editors.ITEMS}:json`)
 </script>
 
 <style lang="stylus" scoped>
+.vitality
+  color #C0392B
+.mind
+  color #8E44AD
+.strength, .earth
+  color #6D4C41
+.intelligence, .fire
+  color #F39C12
+.chance, .water
+  color #2980B9
+.agility, .air
+  color #27AE60
+.speed
+  color #00C853
+.reach
+  color #C51162
+.haste
+  color #304FFE
 
 .placeholder
   display flex
@@ -378,24 +421,6 @@ const show_json = inject(`${Editors.ITEMS}:json`)
             font-size .7em
             width 90px
             font-weight 900
-            &.vitality
-              color #C0392B
-            &.mind
-              color #8E44AD
-            &.strength
-              color #6D4C41
-            &.intelligence
-              color #F39C12
-            &.chance
-              color #2980B9
-            &.agility
-              color #27AE60
-            &.speed
-              color #00C853
-            &.reach
-              color #C51162
-            &.power
-              color #304FFE
 
   .item__middle
     display flex
@@ -408,7 +433,7 @@ const show_json = inject(`${Editors.ITEMS}:json`)
         display flex
         flex-flow column nowrap
         padding-top .5em
-        width 200px
+        // width 200px
 
         .inner
           color #34495E
@@ -418,6 +443,15 @@ const show_json = inject(`${Editors.ITEMS}:json`)
           text-transform uppercase
           font-size .7em
           font-weight 900
+      .multiple
+        display flex
+        flex-flow row nowrap
+        .bonus
+          margin-left .5em
+          display flex
+          flex-flow row nowrap
+        .sep
+          margin 0 .5em
       .stats
         flex-flow column nowrap
         .stat
@@ -433,24 +467,6 @@ const show_json = inject(`${Editors.ITEMS}:json`)
             font-size .7em
             width 100px
             font-weight 900
-            &.vitality
-              color #C0392B
-            &.mind
-              color #8E44AD
-            &.strength
-              color #6D4C41
-            &.intelligence
-              color #F39C12
-            &.chance
-              color #2980B9
-            &.agility
-              color #27AE60
-            &.speed
-              color #00C853
-            &.reach
-              color #C51162
-            &.power
-              color #304FFE
       .name
         display flex
         flex-flow row nowrap
@@ -514,8 +530,6 @@ const show_json = inject(`${Editors.ITEMS}:json`)
       .change, .remove
         margin .5em 0
 
-
-
   .full
     width 100% !important
 
@@ -526,11 +540,91 @@ const show_json = inject(`${Editors.ITEMS}:json`)
       border-radius 10px
       box-shadow 10px 10px 10px #bebebe, -10px -10px 10px #ffffff
 
-.multiple
+.new_damage_row
+  display flex
+  width 100px
+  height 40px
+  border-radius 12px
+  border 1px dashed
+  margin-left 1em
+  justify-content center
+  align-items center
+  position relative
+  cursor pointer
+  font-weight 900
+  font-size .8em
+  opacity .8
+  &::before
+    content ''
+    width 15px
+    height @width
+    border-left 1px solid
+    border-bottom 1px solid
+    border-color black
+    opacity .4
+    position absolute
+    top 15%
+    left -15px
+    border-bottom-left-radius 5px
+
+.damage_row
   display flex
   flex-flow row nowrap
+  position relative
+  margin-left 1em
+  align-items center
+  height 40px
+  // min-width 350px
+  width max-content
+  border-radius 12px
+  padding 0 1em 0 .5em
+  margin-bottom .5em
+  border 1px solid
+
+  .del
+    position absolute
+    top 50%
+    right -35px
+    transform translateY(-50%)
+  &.earth
+    border-color #6D4C41
+    &::before
+      border-color #6D4C41
+  &.fire
+    border-color #F39C12
+    &::before
+      border-color #F39C12
+  &.water
+    border-color #2980B9
+    &::before
+      border-color #2980B9
+  &.air
+    border-color #27AE60
+    &::before
+      border-color #27AE60
+  &::before
+    content ''
+    width 15px
+    height @width
+    border-left 1px solid
+    border-bottom 1px solid
+    position absolute
+    top 15%
+    left -15px
+    border-bottom-left-radius 5px
   .sep
     padding 0 .5em
+    color #212121
+  .q-select
+    margin .5em
+    height max-content
+    min-width 100px
+  .field
+    .inner
+      color inherit !important
+      margin 0 .25em
+      &.right
+        margin-right 1em
 
 @keyframes enchanted
   0%
