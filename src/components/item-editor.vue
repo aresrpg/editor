@@ -7,13 +7,21 @@
           .title(@click="click") {{ readable_set.name }}
     span Stats when multiples items are equipped
     .set_bonus
-      .bonus(v-for="(current_stats, index) in readable_set.stats" :key="index" v-if="index !== 0")
-        span {{ index +1 }} items
+      .bonus(v-for="([index, current_stats]) in Object.entries(readable_set.stats)" :key="index")
+        span {{ index }} items
         .stat(v-for="stat in statistics" :key="stat" v-if="current_stats")
           .name(:class="stat") {{ stat }}:
           field(:numeric="true" :allowNegative="true" v-model="writable_set.stats[index][stat]")
             template(#default="{ click }")
               .value(@click="click") {{ current_stats[stat] ?? 0 }}
+        q-button.del(
+          theme="link"
+          type="icon"
+          icon="q-icon-close"
+          @click="() => del_set_bonus(index)"
+        )
+      .new_bonus(v-if="!readable_set.stats['8']")
+        .empty_bonus(v-for="amount in available_set_bonus" :key="amount" @click.stop="() => add_new_set_bonus(amount)") {{ amount }}
   //- name
   .item__middle
     .left
@@ -28,7 +36,7 @@
       //- item category
       .type
         span Type:
-        options(:options="types" v-model="writable.type")
+        options(:options="types" v-model="writable.type" width="200px")
           template(#default="{ click }")
             .inner(@click="click") {{ readable.type }}
 
@@ -59,7 +67,7 @@
       //- damage
       .damage(v-if="readable.damage")
         span Damage:
-        .damage_row(v-for="(row, index) in readable.damage" :key="index" :class="{ [readable.damage[index].element]: true }")
+        .damage_row(v-for="(row, index) in readable.damage" :key="index" :class="{ [readable.damage[index].element]: true, [readable.damage[index].type]: true }")
           field(:numeric="true" v-model="writable.damage[index].from" :element="readable.damage[index].element")
             template(#default="{ click }")
               .inner(@click="click") {{ readable.damage[index].from }}
@@ -67,12 +75,12 @@
           field(:numeric="true" v-model="writable.damage[index].to" :element="readable.damage[index].element")
             template(#default="{ click }")
               .inner.right(@click="click") {{ readable.damage[index].to }}
-          options.options(:options="elements" v-model="writable.damage[index].element")
+          options.options(:options="elements" v-model="writable.damage[index].element" v-if="readable.damage[index].element")
             template(#default="{ click }")
-              .inner(@click="click") {{ readable.damage[index].element }}
+              .inner(@click="click") {{ readable.damage[index].element }} {{ Emojis[readable.damage[index].element] }}
           options.options(:options="damage_types" v-model="writable.damage[index].type")
             template(#default="{ click }")
-              .inner(@click="click") {{ readable.damage[index].type }}
+              .inner(@click="click") {{ readable.damage[index].type }} {{ Emojis[readable.damage[index].type] }}
           q-button.del(
               theme="link"
               type="icon"
@@ -159,6 +167,16 @@ const DATA = inject(Folders.ARESRPG)
 const items = DATA['items.json']
 const sets = DATA['sets.json']
 const message_box = useMessageBox()
+
+const Emojis = {
+  heal: '❤️‍🩹',
+  damage: '🏹',
+  life_steal: '🧛‍♂️',
+  water: '💧',
+  fire: '🔥',
+  air: '🍃',
+  earth: '🟤',
+}
 
 const RESOURCES = inject(Folders.RESOURCES)
 const ARESRPG_HANDLE = inject(`${Folders.ARESRPG}:handle`)
@@ -277,8 +295,9 @@ const readable_set = computed(() => normalize_set(writable_set))
 
 watch(
   set_of_item,
-  ({ _id } = {}) => {
-    if (_id) {
+  ({ _id } = {}, old) => {
+    const different = _id !== old?._id
+    if (_id && different) {
       Object.assign(writable_set, sets[_id])
     }
   },
@@ -289,12 +308,52 @@ watch(
 )
 watch(writable_set, value => emits('update_set', normalize_set(value)))
 
+const array_difference = (array_1, array_2) =>
+  array_1.filter(x => !array_2.includes(x))
+
+// equipped items counts without a defined bonus
+const available_set_bonus = computed(() => {
+  const amount_of_items_in_set = readable_set.value.items.length
+  if (amount_of_items_in_set <= 1) return []
+
+  const possible_bonuses = Array.from({
+    length: amount_of_items_in_set - 1,
+  }).map((_, index) => index + 2)
+
+  return array_difference(
+    possible_bonuses,
+    Object.keys(readable_set.value.stats).map(x => +x)
+  )
+})
+const add_new_set_bonus = index => {
+  writable_set.stats[index] = {}
+}
+const del_set_bonus = async index => {
+  try {
+    await message_box({
+      title: `Delete bonus ?`,
+      confirmButtonText: 'delete',
+      cancelButtonText: 'cancel',
+    })
+    delete writable_set.stats[index]
+  } catch {}
+}
+
 const is_uploading = () => !!show_texture_upload.value
 
 defineExpose({ is_uploading })
 
 const add_damage = () => writable.damage.push({})
-const del_damage = index => writable.damage.splice(index, 1)
+const del_damage = async index => {
+  try {
+    await message_box({
+      title: `Delete damage ?`,
+      confirmButtonText: 'delete',
+      cancelButtonText: 'cancel',
+    })
+    writable.damage.splice(index, 1)
+  } catch {}
+}
 
 const on_confirm_texture = async () => {
   if (all_files_uploaded.value) {
@@ -367,7 +426,6 @@ const show_json = inject(`${Editors.ITEMS}:json`)
   padding 2em 1em
   flex-flow column nowrap
   width 100%
-  height max-content
   overflow hidden
   overflow-y auto
   height calc(100vh - 50px - 1em)
@@ -404,12 +462,47 @@ const show_json = inject(`${Editors.ITEMS}:json`)
     .set_bonus
       display flex
       flex-flow row nowrap
+      padding 1em
+      .new_bonus
+        display flex
+        padding .5em
+        flex-flow column wrap
+        max-height 200px
+        .empty_bonus
+          cursor pointer
+          display flex
+          justify-content center
+          align-items center
+          width 50px
+          height 50px
+          border 1px dashed rgba(#3F51B5, .5)
+          border-radius 12px
+          font-weight 900
+          color #3F51B5
+          padding 1em
+          margin .15em
+          font-size 1.2em
+          transition box-shadow 150ms ease-in-out
+          &:hover
+            box-shadow 1px 2px 3px rgba(black, .3)
       .bonus
-        border 1px dotted black
+        border 4px double rgba(black, .3)
+        border-radius 12px
         display flex
         flex-flow column nowrap
-        margin 1em 1em 0 1em
+        margin .25em
+        margin-bottom 0
         padding 1em
+        position relative
+
+        .del
+          position absolute
+          top 0
+          right 0
+          padding 0
+          color darken(#ddd, 20%)
+          &:hover
+            color darken(@color, 20%)
         span
           opacity .8
         .stat
@@ -426,7 +519,7 @@ const show_json = inject(`${Editors.ITEMS}:json`)
     display flex
     flex-flow row nowrap
     width 100%
-    align-items center
+    // align-items center
     .left
       width 40%
       >div
@@ -509,10 +602,6 @@ const show_json = inject(`${Editors.ITEMS}:json`)
       .upload
         margin-bottom 1em
         width 600px
-        // height 500px
-        // display flex
-        // justify-content center
-        // align-items center
       .three
         border 1px solid rgba(#7F8C8D .4)
         border-radius 12px
@@ -586,6 +675,7 @@ const show_json = inject(`${Editors.ITEMS}:json`)
     top 50%
     right -35px
     transform translateY(-50%)
+    color darken(#ddd, 30%)
   &.earth
     border-color #6D4C41
     &::before
@@ -602,6 +692,18 @@ const show_json = inject(`${Editors.ITEMS}:json`)
     border-color #27AE60
     &::before
       border-color #27AE60
+  &.heal
+    border-color #C0392B
+    border-width 2px
+    border-style solid
+    color #C0392B
+    &::before
+      border-color #C0392B
+  &.life_steal
+    border-width 2px
+    border-style double solid
+    &::before
+      border-color #C0392B
   &::before
     content ''
     width 15px

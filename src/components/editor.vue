@@ -7,6 +7,7 @@
           @click.stop="() => select_element(element._id)"
           v-for="element in elements"
           :key="element._id"
+          draggable="true"
         )
         .key {{ element.id }}
         q-button.del(

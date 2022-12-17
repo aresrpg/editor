@@ -6,9 +6,10 @@
     v-else
     :is="props.numeric ? 'q-input-number' : 'q-input'"
     @blur="({ target: { value }}) => validate(value)"
-    @keyup.enter="$event.target.blur()"
+    @keydown.enter="$event.target.blur()"
     :model-value="props.numeric ? +props.modelValue : props.modelValue"
     ref="input"
+    :style="{ width: props.numeric ? '60px' : '200px'}"
     :min="props.allowNegative ? -99999999999 : 1"
     v-click-outside="() => validate()"
   )
