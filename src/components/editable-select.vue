@@ -19,13 +19,18 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { ref, watchEffect } from 'vue'
 
 const edit = ref(false)
-const props = defineProps(['modelValue', 'options', 'get_key'])
+const props = defineProps(['modelValue', 'options', 'get_key', 'width'])
 const emits = defineEmits(['update:modelValue'])
+const width = ref('100px')
+
+watchEffect(() => {
+  if (props.width) width.value = props.width
+})
+
 const validate = value => {
-  console.log(props.options)
   if (value) emits('update:modelValue', value)
   edit.value = false
 }
@@ -34,4 +39,6 @@ const validate = value => {
 <style lang="stylus" scoped>
 .field
   cursor pointer
+  .q-select
+    width v-bind(width)
 </style>

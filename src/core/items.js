@@ -35,7 +35,7 @@ export const DEFAULT_ITEM = {
   item: 'magma_cream',
   enchanted: true,
   critical: { from: 1, to: 50 },
-  damage: [{ from: 1, to: 1, life_steal: false }],
+  damage: [{ from: 1, to: 1, element: 'earth', type: 'damage' }],
   stats: {
     vitality: [],
     mind: [],
@@ -73,35 +73,41 @@ export const normalize_set = ({
   items: unsafe_items,
 }) => ({
   name: unsafe_name?.trim() ?? 'name missing',
-  // the index+1 represent how many item the player needs to gain the stats
-  stats: [
-    ...unsafe_stats.map(
-      ({
-        vitality: unsafe_vitality,
-        mind: unsafe_mind,
-        strength: unsafe_strength,
-        intelligence: unsafe_intelligence,
-        chance: unsafe_chance,
-        agility: unsafe_agility,
-        speed: unsafe_speed,
-        reach: unsafe_reach,
-        haste: unsafe_haste,
-      } = {}) => {
-        return {
-          vitality: to_number(unsafe_vitality),
-          mind: to_number(unsafe_mind),
-          strength: to_number(unsafe_strength),
-          intelligence: to_number(unsafe_intelligence),
-          chance: to_number(unsafe_chance),
-          agility: to_number(unsafe_agility),
-          speed: to_number(unsafe_speed),
-          reach: to_number(unsafe_reach),
-          haste: to_number(unsafe_haste),
-        }
-      }
-    ),
-    ...Array.from({ length: 8 }),
-  ],
+  // `item_amount` represent how many item the player needs to equip to gain the stats
+  stats: Object.fromEntries(
+    Object.entries(unsafe_stats)
+      .filter(([item_amount]) => item_amount > 1 || item_amount <= 8)
+      .sort(([key_a], [key_b]) => key_a - key_b)
+      .map(
+        ([
+          item_amount,
+          {
+            vitality: unsafe_vitality,
+            mind: unsafe_mind,
+            strength: unsafe_strength,
+            intelligence: unsafe_intelligence,
+            chance: unsafe_chance,
+            agility: unsafe_agility,
+            speed: unsafe_speed,
+            reach: unsafe_reach,
+            haste: unsafe_haste,
+          } = {},
+        ]) => [
+          item_amount,
+          {
+            vitality: to_number(unsafe_vitality),
+            mind: to_number(unsafe_mind),
+            strength: to_number(unsafe_strength),
+            intelligence: to_number(unsafe_intelligence),
+            chance: to_number(unsafe_chance),
+            agility: to_number(unsafe_agility),
+            speed: to_number(unsafe_speed),
+            reach: to_number(unsafe_reach),
+            haste: to_number(unsafe_haste),
+          },
+        ]
+      )
+  ),
   items: unsafe_items.filter(item => typeof item === 'string'),
 })
 
@@ -127,12 +133,18 @@ const map_minecraft_item = type => {
 }
 
 // make sure a damage object has the correct format
-const format_damage = ({ from, to, type, element } = {}) => ({
-  from: !globalThis.isNaN(from) ? +from : 1,
-  to: !globalThis.isNaN(to) ? +to : 1,
-  type: damage_types.includes(type) ? type : 'damage',
-  element: elements.includes(element) ? element : 'earth',
-})
+const format_damage = ({ from, to, type, element } = {}) => {
+  const formatted = {
+    from: !globalThis.isNaN(from) ? +from : 1,
+    to: !globalThis.isNaN(to) ? +to : 1,
+    type: damage_types.includes(type) ? type : 'damage',
+  }
+  if (type === 'heal') return formatted
+  return {
+    ...formatted,
+    element: elements.includes(element) ? element : 'earth',
+  }
+}
 
 // @TODO:
 // new damages lines
