@@ -121,6 +121,7 @@ const map_minecraft_item = type => {
       return 'leather_boots'
     case 'consumable':
       return 'potion'
+    case 'shield':
     case 'bow':
     case 'helmet':
     case 'sword':
@@ -230,6 +231,7 @@ export const normalize_item = ({
     case 'necklace':
     case 'ring':
     case 'belt':
+    case 'shield':
       return {
         ...mandatory_fields,
         level,

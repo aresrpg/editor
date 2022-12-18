@@ -1,35 +1,43 @@
 <template lang="pug">
 .editor__container
   .content
-    .list__container
-      .element(
-          :class="{ selected: selected_element === element._id, sub: !!element.items, moved: selected_set_id === element._id || selected_element === element._id }"
-          @click.stop="() => select_element(element._id)"
-          v-for="element in elements"
-          :key="element._id"
-          draggable="true"
-        )
-        .key {{ element.id }}
-        q-button.del(
-          theme="link"
-          type="icon"
-          icon="q-icon-close"
-          @click.stop="() => on_delete_element(element)"
-        )
-        .sub_elements(v-if="element.items")
-          .sub_element(
-            v-for="sub_element in element.items"
-            :class="{ selected: selected_element === sub_element._id }"
-            @click.stop="() => select_element(sub_element._id)"
-            :key="sub_element._id"
-            )
-            .key {{ sub_element.id }}
-            q-button.del(
-              theme="link"
-              type="icon"
-              icon="q-icon-close"
-              @click.stop="() => on_delete_element(sub_element)"
-            )
+    .list__container(@drop="on_drop($event, undefined)" @dragenter.prevent @dragover.prevent)
+      transition-group(name="fade")
+        .element(
+            :class="{ selected: selected_element === element._id, sub: !!element.items, moved: selected_set_id === element._id || selected_element === element._id }"
+            @click.stop="() => select_element(element._id)"
+            v-for="element in elements"
+            :key="element._id"
+            :draggable="!element.items"
+            @dragstart="on_drag($event, element)"
+            @drop="on_drop($event, element)"
+            @dragenter.prevent @dragover.prevent
+          )
+          .key {{ element.id }}
+          q-button.del(
+            theme="link"
+            type="icon"
+            :style="{ fontSize: element.items ? '1.3em' : '24px' }"
+            :icon="element.items ? 'q-icon-trash-bin-stroke' : 'q-icon-close'"
+            @click.stop="() => on_delete_element(element, !!element.items)"
+          )
+          .sub_elements(v-if="element.items")
+            transition-group(name="fade")
+              .sub_element(
+                v-for="sub_element in element.items"
+                :class="{ selected: selected_element === sub_element._id }"
+                @click.stop="() => select_element(sub_element._id)"
+                :key="sub_element._id"
+                draggable="true"
+                @dragstart="on_drag($event, sub_element)"
+                )
+                .key {{ sub_element.id }}
+                q-button.del(
+                  theme="link"
+                  type="icon"
+                  icon="q-icon-close"
+                  @click.stop="() => on_delete_element(sub_element)"
+                )
     slot.slot(:set_ref="set_ref" v-if="selected_element" :selected="selected_element")
 </template>
 
@@ -40,9 +48,10 @@ import { useMessageBox } from '@qvant/qui-max'
 import Editors from '../core/Editors'
 import Folders from '../core/Folders'
 import stored_ref from '../core/stored_ref'
+import { normalize_set } from '../core/items'
 
 const props = defineProps(['editor'])
-const emits = defineEmits(['deletion'])
+const emits = defineEmits(['deletion', 'update_set'])
 const message_box = useMessageBox()
 // used to call functions on the component
 const current_editor_instance = ref()
@@ -98,21 +107,22 @@ const raw_sets = computed({
   },
 })
 
-const found_entries_count = inject('entries_count', 0)
-const selected_element = stored_ref(`${props.editor}:selected`)
-const selected_set_id = computed(() => {
+function set_id_of_item(id) {
   const [key] =
-    Object.entries(Injected[props.editor].sets).find(([, value]) =>
-      value.items.includes(selected_element.value)
+    Object.entries(raw_sets.value).find(([, value]) =>
+      value.items.includes(id)
     ) ?? []
   return key
-})
+}
+
+const found_entries_count = inject('entries_count', 0)
+const selected_element = stored_ref(`${props.editor}:selected`)
+const selected_set_id = computed(() => set_id_of_item(selected_element.value))
 const select_element = async id => {
   if (current_editor_instance.value?.is_uploading()) {
     await message_box({
       title: `Not so fast!`,
       submessage: 'You are currently uploading a texture',
-      // confirmButtonText: 'delete',
       cancelButtonText: 'cancel',
     }).catch(() => {})
   } else if (selected_element.value === id) selected_element.value = null
@@ -243,21 +253,68 @@ const elements = computed(() => {
   return result
 })
 
-const on_delete_element = async ({ _id }) => {
+const on_delete_element = async ({ _id }, is_set) => {
   try {
     await message_box({
-      title: `Delete element ?`,
-      submessage: _id,
+      title: `Delete ${_id}`,
+      submessage: is_set ? 'This will not delete items' : '',
       confirmButtonText: 'delete',
       cancelButtonText: 'cancel',
     })
-    emits('deletion', _id)
-    delete raw_elements.value[_id]
+    emits('deletion', { id: _id, is_set })
+    if (is_set) delete raw_sets.value[_id]
+    else delete raw_elements.value[_id]
   } catch {}
+}
+
+const on_drag = (event, item) => {
+  if (item.items) {
+    return
+  }
+  event.dataTransfer.dropEffect = 'move'
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('id', item._id)
+}
+
+const on_drop = (event, dropped_set) => {
+  // only allow the dropped_set to be either null, or an actual set
+  // (discard event calls on a normal item)
+  if (dropped_set && !dropped_set.items) return
+
+  // event is handled, don't let it bubble up
+  event.stopPropagation()
+
+  const { _id: set_id } = dropped_set ?? {}
+  const id = event.dataTransfer.getData('id')
+  const old_set_id = set_id_of_item(id)
+  if (old_set_id === set_id) return
+
+  // remove from old set
+  const old_set = raw_sets.value[old_set_id]
+  if (old_set) {
+    old_set.items = old_set.items.filter(item_id => item_id !== id)
+    emits('update_set', { id: old_set_id, set: normalize_set(old_set) })
+    current_editor_instance.value.reload_set(old_set_id)
+  }
+
+  // if new set is not null, then we add the item to it
+  // otherwise it will not be in any set (and it's fine)
+  const new_set = raw_sets.value[set_id]
+  if (new_set) {
+    new_set.items.push(id)
+    emits('update_set', { id: set_id, set: normalize_set(new_set) })
+    current_editor_instance.value.reload_set(set_id)
+  }
 }
 </script>
 
 <style lang="stylus" scoped>
+.fade-enter-active, .fade-leave-active
+  transition all 300ms
+
+.fade-enter, .fade-leave-to
+  opacity 0
+  transform translateY(30px)
 .editor__container
   display flex
   flex-flow column nowrap
@@ -314,15 +371,18 @@ const on_delete_element = async ({ _id }) => {
           position relative
           height max-content
           padding 0
-          pointer-events none
           border 2px solid #3498DB
+
+          >.del
+            position absolute
+            top -.2em
+            right 0
+            color crimson
           >.key
             padding .5em 1em
             font-weight 900
             text-transform uppercase
             font-size .8em
-          >.del
-            display none
           .sub_elements
             background #f0f0f3
             display flex
@@ -335,7 +395,15 @@ const on_delete_element = async ({ _id }) => {
               height 25px
               display flex
               flex-flow row nowrap
+              color rgba(#1A1509, .64)
               align-items center
+
+              .del
+                color #7F8C8D
+                opacity .5
+                &:hover
+                  color var(--color-primary)
+                  opacity 1
               &.selected
                 background var(--gradient-primary)
                 color white
