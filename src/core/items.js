@@ -33,7 +33,7 @@ export const DEFAULT_ITEM = {
   level: 1,
   type: 'misc',
   item: 'magma_cream',
-  enchanted: true,
+  enchanted: false,
   critical: { from: 1, to: 50 },
   damage: [{ from: 1, to: 1, element: 'earth', type: 'damage' }],
   stats: {
