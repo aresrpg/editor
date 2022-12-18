@@ -60,7 +60,7 @@ export const DEFAULT_SET = {
 const to_range = value => {
   if (Array.isArray(value)) {
     const [from = 0, to = 0] = value
-    return [+from, +to]
+    return [+from, Math.max(+from, +to)]
   }
   return []
 }

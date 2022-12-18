@@ -141,6 +141,7 @@ import { computed, inject, watch, reactive, ref } from 'vue'
 import { useToast } from 'vue-toastification'
 import { useMessageBox } from '@qvant/qui-max'
 import deep_equal from 'deep-equal'
+import deep_copy from 'deep-copy'
 
 import Editors from '../core/Editors.js'
 import {
@@ -306,19 +307,38 @@ watch(
   }
 )
 
-watch(writable, value => {
-  const normalized = normalize_item(value)
-  if (deep_equal({ ...writable }, normalized)) return
-  mutate_reactive(writable, normalized)
-  emits('update', normalized)
-})
+const watchable_writable = computed(() => deep_copy(writable))
+const watchable_writable_set = computed(() => deep_copy(writable_set))
 
-watch(writable_set, value => {
-  const normalized = normalize_set(value)
-  if (deep_equal({ ...writable_set }, normalized)) return
-  mutate_reactive(writable_set, normalized)
-  emits('update_set', normalized)
-})
+watch(
+  watchable_writable,
+  (value, old = {}) => {
+    const normalized = normalize_item(value)
+    const normalized_old = normalize_item(old)
+    if (deep_equal(normalized, normalized_old)) return
+    mutate_reactive(writable, normalized)
+    emits('update', normalized)
+  },
+  {
+    deep: true,
+    immediate: true,
+  }
+)
+
+watch(
+  watchable_writable_set,
+  (value, old = {}) => {
+    const normalized = normalize_item(value)
+    const normalized_old = normalize_item(old)
+    if (deep_equal(normalized, normalized_old)) return
+    mutate_reactive(writable_set, normalized)
+    emits('update_set', normalized)
+  },
+  {
+    deep: true,
+    immediate: true,
+  }
+)
 
 const array_difference = (array_1, array_2) =>
   array_1.filter(x => !array_2.includes(x))

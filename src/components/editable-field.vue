@@ -27,7 +27,7 @@ const props = defineProps(['modelValue', 'numeric', 'allowNegative', 'element'])
 const emits = defineEmits(['update:modelValue'])
 const validate = value => {
   const trimmed = value?.trim().replaceAll(',', '') // weird but it adds ',' for thousands
-  if (trimmed) emits('update:modelValue', trimmed)
+  if (trimmed) emits('update:modelValue', props.numeric ? +trimmed : trimmed)
   edit.value = false
 }
 
