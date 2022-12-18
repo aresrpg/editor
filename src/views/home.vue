@@ -2,13 +2,17 @@
 .main__container
   .editor(v-if="can_edit")
     editor-nav(:editor="selected_editor" @add="() => Editor[selected_editor].add_element()")
-    editor(:editor="selected_editor" @deletion="id => Editor[selected_editor].delete_element(id)")
+    editor(
+        :editor="selected_editor"
+        @deletion="({ id, is_set }) => Editor[selected_editor][is_set ? 'delete_set' : 'delete_element'](id)"
+        @update_set="({ id, set }) => Editor[selected_editor].update_set(id, set)"
+      )
       template(#default="{ selected, set_ref }")
         component(
           :ref="el => set_ref(el)"
           :is="Editor[selected_editor].editor"
-          v-if="Editor[selected_editor].content.value[selected]"
           :id="selected"
+          v-if="() => displayed(selected)"
           @update="value => Editor[selected_editor].update_content(selected, value)"
           @update_set="value => Editor[selected_editor].update_set(selected, value)"
         )
@@ -31,7 +35,7 @@ import editorNav from '../components/nav.vue'
 import stored_ref from '../core/stored_ref.js'
 import message_input from '../components/message-box-input.vue'
 import Textures from '../core/Textures.js'
-import { DEFAULT_ITEM } from '../core/items'
+import { DEFAULT_ITEM, DEFAULT_SET } from '../core/items'
 
 const ARESRPG = reactive({})
 const RESOURCES = reactive({})
@@ -47,7 +51,8 @@ const message_box = useMessageBox()
 const Editor = {
   [Editors.ITEMS]: {
     editor: itemEditor,
-    content: computed(() => ARESRPG?.['items.json']),
+    displayed: selected =>
+      !!ARESRPG?.['items.json'][selected] || ARESRPG?.['sets.json'][selected],
     update_content: async (key, value) => {
       ARESRPG['items.json'][key] = value
       await save_file({
@@ -58,12 +63,14 @@ const Editor = {
       })
     },
     update_set: async (key, value) => {
-      const set_of_item = Object.entries(ARESRPG['sets.json']).find(
-        ([, value]) => value.items.includes(key)
-      )
-      if (set_of_item) {
-        const [set_id] = set_of_item
-        ARESRPG['sets.json'][set_id] = value
+      const is_set_selected = !!ARESRPG['sets.json'][key]
+      const target_set_id = is_set_selected
+        ? key
+        : Object.entries(ARESRPG['sets.json']).find(([, value]) =>
+            value.items.includes(key)
+          )?.[0]
+      if (target_set_id) {
+        ARESRPG['sets.json'][target_set_id] = value
         await save_file({
           directory_handle: ARESRPG_HANDLE.value,
           file_name: 'sets.json',
@@ -91,10 +98,28 @@ const Editor = {
         file_path: [],
       })
     },
+    delete_set: async id => {
+      delete ARESRPG['sets.json'][id]
+      await save_file({
+        directory_handle: ARESRPG_HANDLE.value,
+        file_name: 'sets.json',
+        file_content: JSON.stringify(ARESRPG['sets.json'], null, 2),
+        file_path: [],
+      })
+    },
     add_element: async () => {
       try {
-        const { payload } = await message_box(message_input)
-        ARESRPG['items.json'][payload] = DEFAULT_ITEM
+        const {
+          payload: { id, is_set },
+        } = await message_box(message_input)
+        if (is_set) ARESRPG['sets.json'][id] = DEFAULT_SET
+        else ARESRPG['items.json'][id] = DEFAULT_ITEM
+        console.log({
+          id,
+          is_set,
+          item: ARESRPG['items.json'][id],
+          DEFAULT_ITEM,
+        })
       } catch {}
     },
   },

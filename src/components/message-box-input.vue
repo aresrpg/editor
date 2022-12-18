@@ -8,6 +8,7 @@ const message = inject('qMessageBoxContainer')
 const id = ref('')
 const items = inject(Folders.ARESRPG)['items.json']
 const sets = inject(Folders.ARESRPG)['sets.json']
+const is_set = ref(false)
 const name_list = computed(() =>
   Object.keys({ ...items, ...sets })
     .filter(name => name.startsWith(id.value))
@@ -17,7 +18,7 @@ const name_list = computed(() =>
 const on_confirm = () => {
   message.emitDoneEvent({
     action: 'confirm',
-    payload: id.value,
+    payload: { id: id.value, is_set: is_set.value },
   })
 }
 const on_cancel = () => {
@@ -31,6 +32,9 @@ const on_cancel = () => {
 q-message-box-content
   template(#title) Enter the new id
   template(#content)
+    .is_set
+      q-checkbox(v-model="is_set")
+      span Create a set
     q-input(v-model="id" @keyup.enter="on_confirm")
     span Similar items :
     .names
@@ -53,4 +57,10 @@ span
   opacity .8
   .name
     // padding .25em 0
+.is_set
+  display flex
+  flex-flow row nowrap
+  margin .5em
+  span
+    padding-left 1em
 </style>

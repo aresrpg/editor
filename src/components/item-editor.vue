@@ -1,13 +1,13 @@
 <template lang="pug">
 .item__container
-  .item__set(v-if="set_of_item")
+  .item__set(v-if="displayed_type === 'set'")
     .set_name
       field(v-model="writable_set.name")
         template(#default="{ click }")
-          .title(@click="click") {{ readable_set.name }}
+          .title(@click="click") {{ writable_set.name }}
     span Stats when multiples items are equipped
     .set_bonus
-      .bonus(v-for="([index, current_stats]) in Object.entries(readable_set.stats)" :key="index")
+      .bonus(v-for="([index, current_stats]) in displayed_set_bonuses" :key="index")
         span {{ index }} items
         .stat(v-for="stat in statistics" :key="stat" v-if="current_stats")
           .name(:class="stat") {{ stat }}:
@@ -20,17 +20,17 @@
           icon="q-icon-close"
           @click="() => del_set_bonus(index)"
         )
-      .new_bonus(v-if="!readable_set.stats['8']")
+      .new_bonus(v-if="!writable_set.stats['8']")
         .empty_bonus(v-for="amount in available_set_bonus" :key="amount" @click.stop="() => add_new_set_bonus(amount)") {{ amount }}
   //- name
-  .item__middle
+  .item__middle(v-if="displayed_type === 'item' && items[props.id]")
     .left
       .name.full
         field(v-model="writable.name")
           template(#default="{ click }")
-            .title(:class="{ enchant: readable.enchanted }" @click="click") {{ readable.name }}
+            .title(:class="{ enchant: writable.enchanted }" @click="click") {{ writable.name }}
         //- level
-        .level(v-if="readable.level")
+        .level(v-if="writable.level")
           span Lvl.
           field(v-if="writable.level" :numeric="true" v-model="writable.level")
       //- item category
@@ -38,7 +38,7 @@
         span Type:
         options(:options="types" v-model="writable.type" width="200px")
           template(#default="{ click }")
-            .inner(@click="click") {{ readable.type }}
+            .inner(@click="click") {{ writable.type }}
 
       //- enchanted
       .enchanted
@@ -46,41 +46,41 @@
         q-switch(v-model="writable.enchanted")
 
       //- critical
-      .critical(v-if="readable.critical")
+      .critical(v-if="writable.critical")
         span Critical:
         .multiple
           field(:numeric="true" v-model="writable.critical.from")
             template(#default="{ click }")
-              .inner(@click="click") {{ readable.critical.from }}
+              .inner(@click="click") {{ writable.critical.from }}
           .sep /
           field(:numeric="true" v-model="writable.critical.to")
             template(#default="{ click }")
-              .inner(@click="click") {{ readable.critical.to }}
+              .inner(@click="click") {{ writable.critical.to }}
           .bonus
             .par (+
             field(:numeric="true" v-model="writable.critical.bonus")
               template(#default="{ click }")
-                .inner(@click="click") {{ readable.critical.bonus }}
+                .inner(@click="click") {{ writable.critical.bonus }}
             .par )
 
 
       //- damage
-      .damage(v-if="readable.damage")
+      .damage(v-if="writable.damage")
         span Damage:
-        .damage_row(v-for="(row, index) in readable.damage" :key="index" :class="{ [readable.damage[index].element]: true, [readable.damage[index].type]: true }")
-          field(:numeric="true" v-model="writable.damage[index].from" :element="readable.damage[index].element")
+        .damage_row(v-for="(row, index) in writable.damage" :key="index" :class="{ [writable.damage[index].element]: true, [writable.damage[index].type]: true }")
+          field(:numeric="true" v-model="writable.damage[index].from" :element="writable.damage[index].element")
             template(#default="{ click }")
-              .inner(@click="click") {{ readable.damage[index].from }}
+              .inner(@click="click") {{ writable.damage[index].from }}
           .sep to
-          field(:numeric="true" v-model="writable.damage[index].to" :element="readable.damage[index].element")
+          field(:numeric="true" v-model="writable.damage[index].to" :element="writable.damage[index].element")
             template(#default="{ click }")
-              .inner.right(@click="click") {{ readable.damage[index].to }}
-          options.options(:options="elements" v-model="writable.damage[index].element" v-if="readable.damage[index].element")
+              .inner.right(@click="click") {{ writable.damage[index].to }}
+          options.options(:options="elements" v-model="writable.damage[index].element" v-if="writable.damage[index].element")
             template(#default="{ click }")
-              .inner(@click="click") {{ readable.damage[index].element }} {{ Emojis[readable.damage[index].element] }}
+              .inner(@click="click") {{ writable.damage[index].element }} {{ Emojis[writable.damage[index].element] }}
           options.options(:options="damage_types" v-model="writable.damage[index].type")
             template(#default="{ click }")
-              .inner(@click="click") {{ readable.damage[index].type }} {{ Emojis[readable.damage[index].type] }}
+              .inner(@click="click") {{ writable.damage[index].type }} {{ Emojis[writable.damage[index].type] }}
           q-button.del(
               theme="link"
               type="icon"
@@ -90,23 +90,23 @@
         .new_damage_row(@click="add_damage") Add damage
 
       //- item stats
-      .stats.full(v-if="readable.stats")
+      .stats.full(v-if="writable.stats")
         span Stats:
         .stat(v-for="stat in statistics" :key="stat")
           .name(:class="stat") {{ stat }}:
           field(:numeric="true" :allowNegative="true" v-model="writable.stats[stat][0]")
             template(#default="{ click }")
-              .value(@click="click") {{ readable.stats[stat][0] ?? 0 }}
+              .value(@click="click") {{ writable.stats[stat][0] ?? 0 }}
           .to >
           field(:numeric="true" :allowNegative="true" v-model="writable.stats[stat][1]")
             template(#default="{ click }")
-              .value(@click="click") {{ readable.stats[stat][1] ?? 0 }}
+              .value(@click="click") {{ writable.stats[stat][1] ?? 0 }}
       //- item description
       .desc.full
         span Description:
         text-field(v-model="writable.description")
           template(#default="{ click }")
-            .value(@click="click") {{ readable.description || 'no description' }}
+            .value(@click="click") {{ writable.description || 'no description' }}
 
     .right(v-if="show_texture_upload")
       q-upload.upload(
@@ -132,14 +132,15 @@
       q-button.change(size="small" theme="primary" @click="show_texture_upload = true") {{ item_texture ? 'replace texture' : 'set texture'}}
       q-button.remove(size="small" theme="secondary" @click="on_delete_texture" v-if="item_texture") delete texture
 
-  pre(v-highlightjs v-if="show_json")
-    code.json {{ readable }}
+  pre(v-highlightjs v-if="show_json && (items[props.id] || sets[props.id])")
+    code.json {{ displayed_type === 'item' ? writable : writable_set }}
 </template>
 
 <script setup>
 import { computed, inject, watch, reactive, ref } from 'vue'
 import { useToast } from 'vue-toastification'
 import { useMessageBox } from '@qvant/qui-max'
+import deep_equal from 'deep-equal'
 
 import Editors from '../core/Editors.js'
 import {
@@ -198,18 +199,14 @@ const on_upload_model = async (sourceFile, file_id) => {
   })
 }
 
-const set_of_item = computed(() => {
-  const found_set = Object.entries(sets).find(([, value]) =>
-    value.items.includes(props.id)
-  )
-  if (found_set) {
-    const [_id, value] = found_set
-    return {
-      _id,
-      ...value,
-    }
-  }
-  return undefined
+const displayed_set_bonuses = computed(() => {
+  const max_bonus = Math.max(2, Math.min(8, writable_set.items.length))
+  return Object.entries(writable_set.stats).filter(([key]) => +key <= max_bonus)
+})
+
+const displayed_type = computed(() => {
+  if (sets[props.id]) return 'set'
+  return 'item'
 })
 
 const file_extension = file_name => {
@@ -226,7 +223,7 @@ const on_delete_texture = () =>
     RESOURCES,
     RESOURCES_HANDLE: RESOURCES_HANDLE.value,
     item_id: props.id,
-    item: readable.value.item,
+    item: writable.value.item,
   })
     .delete_texture()
     .then(() => {
@@ -280,40 +277,55 @@ const is_3D_model = computed(() => {
 })
 
 // item
-const writable = reactive(DEFAULT_ITEM)
-const readable = computed(() => normalize_item(writable))
-
-watch(props, ({ id }) => Object.assign(writable, items[id]), {
-  deep: true,
-  immediate: true,
-})
-watch(writable, value => emits('update', normalize_item(value)))
-
+const writable = reactive(normalize_item(DEFAULT_ITEM))
+// const writable = computed(() => normalize_item(writable))
 // set
-const writable_set = reactive(DEFAULT_SET)
-const readable_set = computed(() => normalize_set(writable_set))
+const writable_set = reactive(normalize_set(DEFAULT_SET))
+// const writable_set = computed(() => normalize_set(writable_set))
+
+const empty_object = object =>
+  Object.keys(object).forEach(key => delete object[key])
+
+const mutate_reactive = (reactive_object, object) => {
+  empty_object(reactive_object)
+  Object.assign(reactive_object, object)
+}
 
 watch(
-  set_of_item,
-  ({ _id } = {}, old) => {
-    const different = _id !== old?._id
-    if (_id && different) {
-      Object.assign(writable_set, sets[_id])
-    }
+  () => ({ ...props }),
+  ({ id }, { id: old_id } = {}) => {
+    const different = id !== old_id
+    if (!id || !different) return
+    if (displayed_type.value === 'set' && sets[id])
+      mutate_reactive(writable_set, normalize_set(sets[id]))
+    else if (items[id]) mutate_reactive(writable, normalize_item(items[id]))
   },
   {
     deep: true,
     immediate: true,
   }
 )
-watch(writable_set, value => emits('update_set', normalize_set(value)))
+
+watch(writable, value => {
+  const normalized = normalize_item(value)
+  if (deep_equal({ ...writable }, normalized)) return
+  mutate_reactive(writable, normalized)
+  emits('update', normalized)
+})
+
+watch(writable_set, value => {
+  const normalized = normalize_set(value)
+  if (deep_equal({ ...writable_set }, normalized)) return
+  mutate_reactive(writable_set, normalized)
+  emits('update_set', normalized)
+})
 
 const array_difference = (array_1, array_2) =>
   array_1.filter(x => !array_2.includes(x))
 
 // equipped items counts without a defined bonus
 const available_set_bonus = computed(() => {
-  const amount_of_items_in_set = readable_set.value.items.length
+  const amount_of_items_in_set = writable_set.items.length
   if (amount_of_items_in_set <= 1) return []
 
   const possible_bonuses = Array.from({
@@ -322,7 +334,7 @@ const available_set_bonus = computed(() => {
 
   return array_difference(
     possible_bonuses,
-    Object.keys(readable_set.value.stats).map(x => +x)
+    Object.keys(writable_set.stats).map(x => +x)
   )
 })
 const add_new_set_bonus = index => {
@@ -340,8 +352,11 @@ const del_set_bonus = async index => {
 }
 
 const is_uploading = () => !!show_texture_upload.value
+const reload_set = id => {
+  if (props.id === id) Object.assign(writable_set, sets[id])
+}
 
-defineExpose({ is_uploading })
+defineExpose({ is_uploading, reload_set })
 
 const add_damage = () => writable.damage.push({})
 const del_damage = async index => {
@@ -368,7 +383,7 @@ const on_confirm_texture = async () => {
       RESOURCES,
       RESOURCES_HANDLE: RESOURCES_HANDLE.value,
       item_id: props.id,
-      item: readable.value.item,
+      item: writable.item,
     })
 
     const custom_model_json = model ? JSON.parse(await model.text()) : undefined
@@ -467,7 +482,7 @@ const show_json = inject(`${Editors.ITEMS}:json`)
         display flex
         padding .5em
         flex-flow column wrap
-        max-height 200px
+        max-height 250px
         .empty_bonus
           cursor pointer
           display flex
@@ -490,7 +505,7 @@ const show_json = inject(`${Editors.ITEMS}:json`)
         border-radius 12px
         display flex
         flex-flow column nowrap
-        margin .25em
+        margin .5em
         margin-bottom 0
         padding 1em
         position relative
@@ -508,7 +523,9 @@ const show_json = inject(`${Editors.ITEMS}:json`)
         .stat
           display flex
           flex-flow row nowrap
-          height 17px
+          height 20px
+          width 120px
+          justify-content space-evenly
           .name
             text-transform uppercase
             font-size .7em
