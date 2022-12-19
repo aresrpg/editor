@@ -138,8 +138,7 @@ const Extractors = {
     item: ({ item }) => item,
     name: ({ name }) => name,
     level: ({ level }) => level,
-    equipments: ({ type }) => type,
-    weapons: ({ type }) => type,
+    category: ({ type }) => type,
     enchanted: ({ enchanted }) => enchanted,
     description: ({ description }) => description,
     get_set_name: id =>
@@ -190,10 +189,9 @@ const properties_filter = object => {
               const [min, max] = rule.split(':')
               return property > +min && property <= +max
             }
-            case 'weapons':
-              return weapons.includes(property)
-            case 'equipments':
-              return equipments.includes(property)
+            case 'category':
+              if (rule === 'weapons') return weapons.includes(property)
+              if (rule === 'equipments') return equipments.includes(property)
             case 'enchanted':
               return !!property
             case 'description':

@@ -142,8 +142,8 @@ const Options = {
         label: 'Category',
         value: 'category',
         children: [
-          { label: 'Equipments', value: make_key('equipments') },
-          { label: 'Weapons', value: make_key('weapons') },
+          { label: 'Equipments', value: make_key('category', 'equipments') },
+          { label: 'Weapons', value: make_key('category', 'weapons') },
         ],
       },
       {
