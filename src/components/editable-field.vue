@@ -6,7 +6,7 @@
     v-else
     :is="props.numeric ? 'q-input-number' : 'q-input'"
     @blur="({ target: { value }}) => validate(value)"
-    @keydown.enter="$event.target.blur()"
+    @keydown="on_keydown"
     :model-value="props.numeric ? +props.modelValue : props.modelValue"
     ref="input"
     :style="{ width: props.numeric ? '60px' : '200px'}"
@@ -16,20 +16,41 @@
 </template>
 
 <script setup>
-import { nextTick, ref, watchEffect } from 'vue'
+import { nextTick, onBeforeUpdate, ref, watchEffect } from 'vue'
 
 const allow_edit = () => {
   edit.value = true
 }
 const edit = ref(false)
 const input = ref()
-const props = defineProps(['modelValue', 'numeric', 'allowNegative', 'element'])
-const emits = defineEmits(['update:modelValue'])
+const props = defineProps([
+  'modelValue',
+  'numeric',
+  'allowNegative',
+  'element',
+  'editing',
+])
+const emits = defineEmits(['update:modelValue', 'leave'])
+
+const on_keydown = event => {
+  if (event.key === 'Enter') event.target.blur()
+  else if (event.key === 'Tab') {
+    event.target.blur()
+    emits('leave')
+    event.preventDefault()
+  }
+}
+
 const validate = value => {
   const trimmed = value?.trim().replaceAll(',', '') // weird but it adds ',' for thousands
   if (trimmed) emits('update:modelValue', props.numeric ? +trimmed : trimmed)
   edit.value = false
+  // emits('leave')
 }
+
+watchEffect(() => {
+  if (props.editing !== undefined) edit.value = props.editing
+})
 
 watchEffect(() => {
   if (edit.value) {

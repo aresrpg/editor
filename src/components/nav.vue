@@ -139,6 +139,14 @@ const Options = {
         })),
       },
       {
+        label: 'Category',
+        value: 'category',
+        children: [
+          { label: 'Equipments', value: make_key('equipments') },
+          { label: 'Weapons', value: make_key('weapons') },
+        ],
+      },
+      {
         label: 'Level',
         value: 'level',
         children: [

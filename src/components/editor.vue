@@ -48,7 +48,7 @@ import { useMessageBox } from '@qvant/qui-max'
 import Editors from '../core/Editors'
 import Folders from '../core/Folders'
 import stored_ref from '../core/stored_ref'
-import { normalize_set } from '../core/items'
+import { equipments, normalize_set, weapons } from '../core/items'
 
 const props = defineProps(['editor'])
 const emits = defineEmits(['deletion', 'update_set'])
@@ -138,6 +138,8 @@ const Extractors = {
     item: ({ item }) => item,
     name: ({ name }) => name,
     level: ({ level }) => level,
+    equipments: ({ type }) => type,
+    weapons: ({ type }) => type,
     enchanted: ({ enchanted }) => enchanted,
     description: ({ description }) => description,
     get_set_name: id =>
@@ -181,20 +183,31 @@ const properties_filter = object => {
     .map(([type, types]) => [type, Array.from(types.values())])
     .every(([type, types]) =>
       types.find(rule => {
-        const property = Extractors[props.editor][type](object)
-        switch (type) {
-          case 'level': {
-            const [min, max] = rule.split(':')
-            return property > +min && property <= +max
+        const match_rule = current_object => {
+          const property = Extractors[props.editor][type](current_object)
+          switch (type) {
+            case 'level': {
+              const [min, max] = rule.split(':')
+              return property > +min && property <= +max
+            }
+            case 'weapons':
+              return weapons.includes(property)
+            case 'equipments':
+              return equipments.includes(property)
+            case 'enchanted':
+              return !!property
+            case 'description':
+              if (rule === 'no_desc') return !property
+              return property && property.trim()
+            default:
+              return property === rule
           }
-          case 'enchanted':
-            return !!property
-          case 'description':
-            if (rule === 'no_desc') return !property
-            return property && property.trim()
-          default:
-            return property === rule
         }
+        if (object.items) {
+          // element is a set so we pass if one of the items is matching
+          return object.items.find(match_rule)
+        }
+        return match_rule(object)
       })
     )
 }
@@ -246,10 +259,10 @@ const elements = computed(() => {
   ]
 
   const result = apply_filters(merge_sets)
-  found_entries_count.value = result.reduce(
-    (length, { items = [] }) => length + 1 + items.length,
-    0
-  )
+  found_entries_count.value = result.reduce((length, { items }) => {
+    if (items) return length + items.length
+    return length + 1
+  }, 0)
   return result
 })
 
@@ -294,7 +307,7 @@ const on_drop = (event, dropped_set) => {
   if (old_set) {
     old_set.items = old_set.items.filter(item_id => item_id !== id)
     emits('update_set', { id: old_set_id, set: normalize_set(old_set) })
-    current_editor_instance.value.reload_set(old_set_id)
+    current_editor_instance.value?.reload_set(old_set_id)
   }
 
   // if new set is not null, then we add the item to it
@@ -303,7 +316,7 @@ const on_drop = (event, dropped_set) => {
   if (new_set) {
     new_set.items.push(id)
     emits('update_set', { id: set_id, set: normalize_set(new_set) })
-    current_editor_instance.value.reload_set(set_id)
+    current_editor_instance.value?.reload_set(set_id)
   }
 }
 </script>

@@ -1,6 +1,6 @@
 import { delete_file, save_file } from './directories.js'
 
-const equipments = [
+export const equipments = [
   'helmet',
   'chestplate',
   'leggings',
@@ -11,7 +11,7 @@ const equipments = [
   'shield',
 ]
 
-const weapons = ['sword', 'axe', 'bow', 'stick']
+export const weapons = ['sword', 'axe', 'bow', 'stick']
 
 export const types = [...equipments, ...weapons, 'misc', 'consumable']
 export const elements = ['earth', 'fire', 'water', 'air']
@@ -69,8 +69,8 @@ const to_number = value => (globalThis.isNaN(value) ? 0 : +value)
 
 export const normalize_set = ({
   name: unsafe_name,
-  stats: unsafe_stats,
-  items: unsafe_items,
+  stats: unsafe_stats = {},
+  items: unsafe_items = [],
 }) => ({
   name: unsafe_name?.trim() ?? 'name missing',
   // `item_amount` represent how many item the player needs to equip to gain the stats

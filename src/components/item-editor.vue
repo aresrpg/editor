@@ -92,13 +92,25 @@
       //- item stats
       .stats.full(v-if="writable.stats")
         span Stats:
-        .stat(v-for="stat in statistics" :key="stat")
+        .stat(v-for="(stat, index) in statistics" :key="stat")
           .name(:class="stat") {{ stat }}:
-          field(:numeric="true" :allowNegative="true" v-model="writable.stats[stat][0]")
+          field(
+              :numeric="true"
+              :allowNegative="true"
+              :editing="current_stat_edit.stat === stat && current_stat_edit.index === 0"
+              v-model="writable.stats[stat][0]"
+              @leave="() => current_stat_edit = { stat, index: 1}"
+            )
             template(#default="{ click }")
               .value(@click="click") {{ writable.stats[stat][0] ?? 0 }}
           .to >
-          field(:numeric="true" :allowNegative="true" v-model="writable.stats[stat][1]")
+          field(
+            :numeric="true"
+            :allowNegative="true"
+            :editing="current_stat_edit.stat === stat && current_stat_edit.index === 1"
+            v-model="writable.stats[stat][1]"
+            @leave="() => current_stat_edit = {stat: statistics[index+1], index: 0 }"
+          )
             template(#default="{ click }")
               .value(@click="click") {{ writable.stats[stat][1] ?? 0 }}
       //- item description
@@ -186,6 +198,9 @@ const RESOURCES_HANDLE = inject(`${Folders.RESOURCES}:handle`)
 
 const show_texture_upload = ref(false)
 const uploaded_files = ref([])
+
+// allow to switch over all stats using enter for faster edition
+const current_stat_edit = ref({})
 
 const toast = useToast()
 const on_clear_model = file_id => {
@@ -328,8 +343,8 @@ watch(
 watch(
   watchable_writable_set,
   (value, old = {}) => {
-    const normalized = normalize_item(value)
-    const normalized_old = normalize_item(old)
+    const normalized = normalize_set(value)
+    const normalized_old = normalize_set(old)
     if (deep_equal(normalized, normalized_old)) return
     mutate_reactive(writable_set, normalized)
     emits('update_set', normalized)
@@ -349,7 +364,7 @@ const available_set_bonus = computed(() => {
   if (amount_of_items_in_set <= 1) return []
 
   const possible_bonuses = Array.from({
-    length: amount_of_items_in_set - 1,
+    length: Math.max(2, Math.min(7, amount_of_items_in_set)),
   }).map((_, index) => index + 2)
 
   return array_difference(
