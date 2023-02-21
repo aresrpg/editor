@@ -49,20 +49,17 @@
       .critical(v-if="writable.critical")
         span Critical:
         .multiple
-          field(:numeric="true" v-model="writable.critical.from")
-            template(#default="{ click }")
-              .inner(@click="click") {{ writable.critical.from }}
+          .inner 1
           .sep /
-          field(:numeric="true" v-model="writable.critical.to")
+          field(:numeric="true" v-model="writable.critical.value")
             template(#default="{ click }")
-              .inner(@click="click") {{ writable.critical.to }}
+              .inner(@click="click") {{ writable.critical.value }}
           .bonus
             .par (+
             field(:numeric="true" v-model="writable.critical.bonus")
               template(#default="{ click }")
                 .inner(@click="click") {{ writable.critical.bonus }}
             .par )
-
 
       //- damage
       .damage(v-if="writable.damage")

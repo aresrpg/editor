@@ -26,6 +26,7 @@ export const statistics = [
   'speed',
   'reach',
   'haste',
+  'raw_damage',
 ]
 
 export const DEFAULT_ITEM = {
@@ -34,7 +35,7 @@ export const DEFAULT_ITEM = {
   type: 'misc',
   item: 'magma_cream',
   enchanted: false,
-  critical: { from: 1, to: 50 },
+  critical: { value: 50, bonus: 5 },
   damage: [{ from: 1, to: 1, element: 'earth', type: 'damage' }],
   stats: {
     vitality: [],
@@ -46,6 +47,7 @@ export const DEFAULT_ITEM = {
     speed: [],
     reach: [],
     haste: [],
+    raw_damage: [],
   },
   description: '',
   custom_model_data: 0,
@@ -91,6 +93,7 @@ export const normalize_set = ({
             speed: unsafe_speed,
             reach: unsafe_reach,
             haste: unsafe_haste,
+            raw_damage: unsafe_raw_damage,
           } = {},
         ]) => [
           item_amount,
@@ -104,6 +107,7 @@ export const normalize_set = ({
             speed: to_number(unsafe_speed),
             reach: to_number(unsafe_reach),
             haste: to_number(unsafe_haste),
+            raw_damage: to_number(unsafe_raw_damage),
           },
         ]
       )
@@ -147,24 +151,13 @@ const format_damage = ({ from, to, type, element } = {}) => {
   }
 }
 
-// @TODO:
-// new damages lines
-// select damage element
-// allow life steal
-// fix critical
-// add critical bonus (increased damage on critical hit)
-
 export const normalize_item = ({
   name: unsafe_name,
   level: unsafe_level,
   type,
   custom_model_data = 0,
   enchanted: unsafe_enchanted,
-  critical: {
-    from: unsafe_crit_from,
-    to: unsafe_crit_to,
-    bonus: unsafe_bonus,
-  } = {},
+  critical: { value: unsafe_crit_value, bonus: unsafe_bonus } = {},
   damage: unsafe_damage,
   stats: {
     vitality: unsafe_vitality = [],
@@ -176,6 +169,7 @@ export const normalize_item = ({
     speed: unsafe_speed = [],
     reach: unsafe_reach = [],
     haste: unsafe_haste = [],
+    raw_damage: unsafe_raw_damage = [],
   } = {},
   description: unsafe_description = '',
 }) => {
@@ -194,22 +188,16 @@ export const normalize_item = ({
     speed: to_range(unsafe_speed),
     reach: to_range(unsafe_reach),
     haste: to_range(unsafe_haste),
+    raw_damage: to_range(unsafe_raw_damage),
   }
 
   const critical = {
-    from: !globalThis.isNaN(unsafe_crit_from) ? +unsafe_crit_from : 1,
-    to: !globalThis.isNaN(unsafe_crit_to) ? +unsafe_crit_to : 50,
-    bonus: !globalThis.isNaN(unsafe_bonus) ? +unsafe_bonus : 10,
+    value: !globalThis.isNaN(unsafe_crit_value) ? +unsafe_crit_value : 50,
+    bonus: !globalThis.isNaN(unsafe_bonus) ? +unsafe_bonus : 5,
   }
   const damage = Array.isArray(unsafe_damage)
     ? unsafe_damage.map(format_damage)
-    : [
-        {
-          from: 1,
-          to: 1,
-          life_steal: false,
-        },
-      ]
+    : []
   const description = Array.isArray(unsafe_description)
     ? unsafe_description.join(' ')
     : unsafe_description
