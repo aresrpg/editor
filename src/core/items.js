@@ -35,7 +35,7 @@ export const DEFAULT_ITEM = {
   type: 'misc',
   item: 'magma_cream',
   enchanted: false,
-  critical: { value: 50, bonus: 5 },
+  critical: { outcomes: 50, bonus: 5 },
   damage: [{ from: 1, to: 1, element: 'earth', type: 'damage' }],
   stats: {
     vitality: [],
@@ -157,7 +157,7 @@ export const normalize_item = ({
   type,
   custom_model_data = 0,
   enchanted: unsafe_enchanted,
-  critical: { value: unsafe_crit_value, bonus: unsafe_bonus } = {},
+  critical: { outcomes: unsafe_crit_outcomes, bonus: unsafe_bonus } = {},
   damage: unsafe_damage,
   stats: {
     vitality: unsafe_vitality = [],
@@ -192,7 +192,9 @@ export const normalize_item = ({
   }
 
   const critical = {
-    value: !globalThis.isNaN(unsafe_crit_value) ? +unsafe_crit_value : 50,
+    outcomes: !globalThis.isNaN(unsafe_crit_outcomes)
+      ? +unsafe_crit_outcomes
+      : 50,
     bonus: !globalThis.isNaN(unsafe_bonus) ? +unsafe_bonus : 5,
   }
   const damage = Array.isArray(unsafe_damage)

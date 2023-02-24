@@ -51,9 +51,9 @@
         .multiple
           .inner 1
           .sep /
-          field(:numeric="true" v-model="writable.critical.value")
+          field(:numeric="true" v-model="writable.critical.outcomes")
             template(#default="{ click }")
-              .inner(@click="click") {{ writable.critical.value }}
+              .inner(@click="click") {{ writable.critical.outcomes }}
           .bonus
             .par (+
             field(:numeric="true" v-model="writable.critical.bonus")
