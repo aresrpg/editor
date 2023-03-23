@@ -152,6 +152,7 @@ const format_damage = ({ from, to, type, element } = {}) => {
 }
 
 export const normalize_item = ({
+  id,
   name: unsafe_name,
   level: unsafe_level,
   type,
@@ -205,6 +206,7 @@ export const normalize_item = ({
     : unsafe_description
 
   const mandatory_fields = {
+    id: id ?? name.toLowerCase().replace(/ /g, '_'),
     name,
     type,
     item,

@@ -113,7 +113,7 @@ const Editor = {
           payload: { id, is_set },
         } = await message_box(message_input)
         if (is_set) ARESRPG['sets.json'][id] = DEFAULT_SET
-        else ARESRPG['items.json'][id] = DEFAULT_ITEM
+        else ARESRPG['items.json'][id] = { ...DEFAULT_ITEM, id }
         console.log({
           id,
           is_set,
