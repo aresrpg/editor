@@ -23,7 +23,14 @@ export const weapons = [
   'staff',
 ]
 
-export const types = [...equipments, ...weapons, 'misc', 'consumable', 'relic']
+export const types = [
+  ...equipments,
+  ...weapons,
+  'misc',
+  'consumable',
+  'relic',
+  'rune',
+]
 export const elements = ['earth', 'fire', 'water', 'air']
 export const damage_types = ['damage', 'life_steal', 'heal']
 export const statistics = [
@@ -226,6 +233,7 @@ export const normalize_item = ({
     case 'necklace':
     case 'ring':
     case 'belt':
+    case 'relic':
       return {
         ...mandatory_fields,
         level,
@@ -252,6 +260,11 @@ export const normalize_item = ({
         stats,
         critical,
         damage,
+      }
+    case 'rune':
+      return {
+        ...mandatory_fields,
+        type: 'rune',
       }
     default:
       return {
