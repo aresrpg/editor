@@ -8,12 +8,22 @@ export const equipments = [
   'necklace',
   'ring',
   'belt',
-  'shield',
 ]
 
-export const weapons = ['sword', 'axe', 'bow', 'stick']
+export const weapons = [
+  'axe',
+  'hammer',
+  'crossbow',
+  'scythe',
+  'spear',
+  'dagger',
+  'sword',
+  'bow',
+  'wand',
+  'staff',
+]
 
-export const types = [...equipments, ...weapons, 'misc', 'consumable']
+export const types = [...equipments, ...weapons, 'misc', 'consumable', 'relic']
 export const elements = ['earth', 'fire', 'water', 'air']
 export const damage_types = ['damage', 'life_steal', 'heal']
 export const statistics = [
@@ -125,13 +135,6 @@ const map_minecraft_item = type => {
       return 'leather_boots'
     case 'consumable':
       return 'potion'
-    case 'shield':
-    case 'bow':
-    case 'helmet':
-    case 'sword':
-    case 'axe':
-    case 'stick':
-    case 'misc':
     default:
       return 'magma_cream'
   }
@@ -223,7 +226,6 @@ export const normalize_item = ({
     case 'necklace':
     case 'ring':
     case 'belt':
-    case 'shield':
       return {
         ...mandatory_fields,
         level,
@@ -234,10 +236,16 @@ export const normalize_item = ({
         ...mandatory_fields,
         level,
       }
-    case 'sword':
     case 'axe':
+    case 'hammer':
+    case 'crossbow':
+    case 'scythe':
+    case 'spear':
+    case 'dagger':
+    case 'sword':
     case 'bow':
-    case 'stick':
+    case 'wand':
+    case 'staff':
       return {
         ...mandatory_fields,
         level,
