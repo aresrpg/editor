@@ -13,7 +13,7 @@ const default_model_json = item_id => ({
   parent: 'item/handheld',
   texture_size: [32, 32],
   textures: {
-    layer0: `custom/${item_id}`,
+    layer0: `aresrpg:item/${item_id}`,
   },
 })
 
@@ -47,7 +47,7 @@ export default ({ RESOURCES, RESOURCES_HANDLE, item, item_id }) => {
       const custom_model_data = get_unused_index(base_json)
       const override = {
         predicate: { custom_model_data },
-        model: `custom/${item_id}`,
+        model: `aresrpg:item/${item_id}`,
       }
       const item_json = {
         ...base_json,
@@ -57,12 +57,12 @@ export default ({ RESOURCES, RESOURCES_HANDLE, item, item_id }) => {
       const model_json = custom_model_json ?? default_model_json(item_id)
 
       RESOURCES.assets.minecraft.models.item[item_filename] = item_json
-      RESOURCES.assets.minecraft.models.custom[model_filename] = model_json
-      RESOURCES.assets.minecraft.textures.custom[texture_filename] =
+      RESOURCES.assets.aresrpg.models.item[model_filename] = model_json
+      RESOURCES.assets.aresrpg.textures.item.game[texture_filename] =
         custom_texture
 
       if (custom_mcmeta) {
-        RESOURCES.assets.minecraft.textures.custom[mcmeta_filename] =
+        RESOURCES.assets.aresrpg.textures.item.game[mcmeta_filename] =
           custom_mcmeta
 
         // save mcmeta file (for texture animation)
@@ -70,11 +70,11 @@ export default ({ RESOURCES, RESOURCES_HANDLE, item, item_id }) => {
           directory_handle: RESOURCES_HANDLE,
           file_name: mcmeta_filename,
           file_content: JSON.stringify(custom_mcmeta),
-          file_path: ['assets', 'minecraft', 'textures', 'custom'],
+          file_path: ['assets', 'aresrpg', 'textures', 'item', 'game'],
         })
       }
 
-      // save models/item/<item>.json file (which points to the model)
+      // save minecraft:models/item/<item>.json file (which points to the model)
       await save_file({
         directory_handle: RESOURCES_HANDLE,
         file_name: item_filename,
@@ -82,20 +82,20 @@ export default ({ RESOURCES, RESOURCES_HANDLE, item, item_id }) => {
         file_path: ['assets', 'minecraft', 'models', 'item'],
       })
 
-      // save models/custom/<id>.json file (which points to the texture)
+      // save aresrpg:models/item/<id>.json file (which points to the texture)
       await save_file({
         directory_handle: RESOURCES_HANDLE,
         file_name: model_filename,
         file_content: JSON.stringify(model_json, null, 2),
-        file_path: ['assets', 'minecraft', 'models', 'custom'],
+        file_path: ['assets', 'aresrpg', 'models', 'item'],
       })
 
-      // save textures/custom/<id>.png
+      // save aresrpg:textures/item/game/<id>.png
       await save_file({
         directory_handle: RESOURCES_HANDLE,
         file_name: texture_filename,
         file_content: custom_texture,
-        file_path: ['assets', 'minecraft', 'textures', 'custom'],
+        file_path: ['assets', 'aresrpg', 'textures', 'item', 'game'],
       })
 
       return custom_model_data
@@ -108,17 +108,17 @@ export default ({ RESOURCES, RESOURCES_HANDLE, item, item_id }) => {
       const item_json = {
         ...base_json,
         overrides: base_json.overrides.filter(
-          ({ model }) => model !== `custom/${item_id}`
+          ({ model }) => model !== `aresrpg:item/${item_id}`
         ),
       }
 
-      delete RESOURCES.assets.minecraft.textures.custom[mcmeta_filename]
-      delete RESOURCES.assets.minecraft.models.custom[model_filename]
-      delete RESOURCES.assets.minecraft.textures.custom[texture_filename]
+      delete RESOURCES.assets.aresrpg.textures.item.game[mcmeta_filename]
+      delete RESOURCES.assets.aresrpg.models.item[model_filename]
+      delete RESOURCES.assets.aresrpg.textures.item.game[texture_filename]
 
       RESOURCES.assets.minecraft.models.item[item_filename] = item_json
 
-      // save models/item/<item>.json file (which points to the model)
+      // save minecraft:models/item/<item>.json file (which points to the model)
       await save_file({
         directory_handle: RESOURCES_HANDLE,
         file_name: item_filename,
@@ -130,19 +130,19 @@ export default ({ RESOURCES, RESOURCES_HANDLE, item, item_id }) => {
       await delete_file({
         directory_handle: RESOURCES_HANDLE,
         file_name: model_filename,
-        file_path: ['assets', 'minecraft', 'models', 'custom'],
+        file_path: ['assets', 'aresrpg', 'models', 'item'],
       }).catch(() => {})
 
       await delete_file({
         directory_handle: RESOURCES_HANDLE,
         file_name: texture_filename,
-        file_path: ['assets', 'minecraft', 'textures', 'custom'],
+        file_path: ['assets', 'aresrpg', 'textures', 'item', 'game'],
       }).catch(() => {})
 
       await delete_file({
         directory_handle: RESOURCES_HANDLE,
         file_name: mcmeta_filename,
-        file_path: ['assets', 'minecraft', 'textures', 'custom'],
+        file_path: ['assets', 'aresrpg', 'textures', 'item', 'game'],
       }).catch(() => {})
     },
   }

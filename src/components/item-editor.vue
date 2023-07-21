@@ -246,8 +246,8 @@ const on_delete_texture = () =>
 const item_model = computed(() => {
   const {
     assets: {
-      minecraft: {
-        models: { custom: { [`${props.id}.json`]: model } = {} },
+      aresrpg: {
+        models: { item: { [`${props.id}.json`]: model } = {} },
       },
     },
   } = RESOURCES
@@ -256,8 +256,10 @@ const item_model = computed(() => {
 const item_texture = computed(() => {
   const {
     assets: {
-      minecraft: {
-        textures: { custom: { [`${props.id}.png`]: texture } = {} },
+      aresrpg: {
+        textures: {
+          item: { game: { [`${props.id}.png`]: texture } = {} } = {},
+        },
       },
     },
   } = RESOURCES
@@ -276,8 +278,10 @@ const default_texture = computed(() => {
 const item_mcmeta = computed(() => {
   const {
     assets: {
-      minecraft: {
-        textures: { custom: { [`${props.id}.mcmeta`]: mcmeta } = {} },
+      aresrpg: {
+        textures: {
+          item: { game: { [`${props.id}.mcmeta`]: mcmeta } = {} } = {},
+        },
       },
     },
   } = RESOURCES
