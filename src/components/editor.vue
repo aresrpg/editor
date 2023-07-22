@@ -4,16 +4,16 @@
     .list__container(@drop="on_drop($event, undefined)" @dragenter.prevent @dragover.prevent)
       transition-group(name="fade")
         .element(
-            :class="{ selected: selected_element === element._id, sub: !!element.items, moved: selected_set_id === element._id || selected_element === element._id }"
-            @click.stop="() => select_element(element._id)"
+            :class="{ selected: selected_element === element.id, sub: !!element.items, moved: selected_set_id === element.id || selected_element === element.id }"
+            @click.stop="() => select_element(element.id)"
             v-for="element in elements"
-            :key="element._id"
+            :key="element.id"
             :draggable="!element.items"
             @dragstart="on_drag($event, element)"
             @drop="on_drop($event, element)"
             @dragenter.prevent @dragover.prevent
           )
-          .key {{ element.id }}
+          .key {{ fancy_name ? element.name : element.id }}
           q-button.del(
             theme="link"
             type="icon"
@@ -25,13 +25,13 @@
             transition-group(name="fade")
               .sub_element(
                 v-for="sub_element in element.items"
-                :class="{ selected: selected_element === sub_element._id }"
-                @click.stop="() => select_element(sub_element._id)"
-                :key="sub_element._id"
+                :class="{ selected: selected_element === sub_element.id }"
+                @click.stop="() => select_element(sub_element.id)"
+                :key="sub_element.id"
                 draggable="true"
                 @dragstart="on_drag($event, sub_element)"
                 )
-                .key {{ sub_element.id }}
+                .key {{ fancy_name ? sub_element.name : sub_element.id }}
                 q-button.del(
                   theme="link"
                   type="icon"
@@ -154,13 +154,13 @@ const Extractors = {
   },
 }
 
-const search_filter = ({ _id, items, ...rest }) => {
+const search_filter = ({ id, items, ...rest }) => {
   const extractor = Extractors[props.editor]
   const name = extractor.name(rest)
-  const name_of_set = extractor.get_set_name(_id)
+  const name_of_set = extractor.get_set_name(id)
   if (search.value) {
     const name_contained =
-      contains(name) || contains(_id) || (name_of_set && contains(name_of_set))
+      contains(name) || contains(id) || (name_of_set && contains(name_of_set))
     if (items) return name_contained || items.filter(search_filter).length
     return name_contained
   }
@@ -213,14 +213,12 @@ const properties_filter = object => {
 const Options = {
   [Editors.ITEMS]: {
     insert_key: ([id, value]) => {
-      const final_id = fancy_name.value ? value.name : id
-      return { id: final_id, _id: id, ...value }
+      return { id, ...value }
     },
   },
   [Editors.ENTITIES]: {
     insert_key: ([id, value], index) => {
-      const final_id = fancy_name.value ? value.display_name : id
-      return { id: final_id, ...value }
+      return { id, ...value }
     },
   },
 }
@@ -242,7 +240,7 @@ const elements = computed(() => {
       key,
       {
         ...value,
-        _id: key,
+        id: key,
         items: apply_filters(
           raw_elements_entries.filter(([key]) => value.items.includes(key))
         ),
@@ -264,17 +262,17 @@ const elements = computed(() => {
   return result
 })
 
-const on_delete_element = async ({ _id }, is_set) => {
+const on_delete_element = async ({ id }, is_set) => {
   try {
     await message_box({
-      title: `Delete ${_id}`,
+      title: `Delete ${id}`,
       submessage: is_set ? 'This will not delete items' : '',
       confirmButtonText: 'delete',
       cancelButtonText: 'cancel',
     })
-    emits('deletion', { id: _id, is_set })
-    if (is_set) delete raw_sets.value[_id]
-    else delete raw_elements.value[_id]
+    emits('deletion', { id: id, is_set })
+    if (is_set) delete raw_sets.value[id]
+    else delete raw_elements.value[id]
   } catch {}
 }
 
@@ -284,10 +282,11 @@ const on_drag = (event, item) => {
   }
   event.dataTransfer.dropEffect = 'move'
   event.dataTransfer.effectAllowed = 'move'
-  event.dataTransfer.setData('id', item._id)
+  event.dataTransfer.setData('id', item.id)
 }
 
 const on_drop = (event, dropped_set) => {
+  console.dir({ event, dropped_set, items: dropped_set?.items })
   // only allow the dropped_set to be either null, or an actual set
   // (discard event calls on a normal item)
   if (dropped_set && !dropped_set.items) return
@@ -295,9 +294,12 @@ const on_drop = (event, dropped_set) => {
   // event is handled, don't let it bubble up
   event.stopPropagation()
 
-  const { _id: set_id } = dropped_set ?? {}
+  const { id: set_id } = dropped_set ?? {}
   const id = event.dataTransfer.getData('id')
+  console.log(id, set_id)
   const old_set_id = set_id_of_item(id)
+  console.log('found old_set_id=', old_set_id)
+
   if (old_set_id === set_id) return
 
   // remove from old set

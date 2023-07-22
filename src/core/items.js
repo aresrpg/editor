@@ -216,7 +216,7 @@ export const normalize_item = ({
     : unsafe_description
 
   const mandatory_fields = {
-    id: id ?? name.toLowerCase().replace(/ /g, '_'),
+    id,
     name,
     type,
     item,

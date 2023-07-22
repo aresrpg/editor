@@ -20,7 +20,7 @@
           icon="q-icon-close"
           @click="() => del_set_bonus(index)"
         )
-      .new_bonus(v-if="!writable_set.stats['8']")
+      .new_bonus(v-if="available_set_bonus.length")
         .empty_bonus(v-for="amount in available_set_bonus" :key="amount" @click.stop="() => add_new_set_bonus(amount)") {{ amount }}
   //- name
   .item__middle(v-if="displayed_type === 'item' && items[props.id]")
@@ -367,7 +367,14 @@ const available_set_bonus = computed(() => {
   const possible_bonuses = Array.from({
     length: Math.max(2, Math.min(7, amount_of_items_in_set)),
   }).map((_, index) => index + 2)
-
+  console.log(
+    'possible bonus=',
+    possible_bonuses,
+    'amount_of_items_in_set=',
+    amount_of_items_in_set,
+    'writable_set_stats=',
+    Object.keys(writable_set.stats).map(x => +x)
+  )
   return array_difference(
     possible_bonuses,
     Object.keys(writable_set.stats).map(x => +x)
