@@ -10,7 +10,7 @@ const default_item_json = item => ({
 
 const default_model_json = item_id => ({
   credit: 'AresRPG generated | https://aresrpg.world',
-  parent: 'item/handheld',
+  parent: 'minecraft:item/handheld',
   texture_size: [32, 32],
   textures: {
     layer0: `aresrpg:item/${item_id}`,
